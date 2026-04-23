@@ -14,7 +14,7 @@ type WorkoutSetRow = {
   session_id: string
   exercise_id: string
   set_number: number
-  set_category: string
+  set_type: string
   set_technique: string
   load_kg: number
   reps: number
@@ -27,12 +27,17 @@ type WorkoutSetRow = {
 }
 
 function mapSet(raw: WorkoutSetRow): WorkoutSet {
+  const validCategories = ['Working Set', 'Top Set', 'Back Off Set', 'Warming Set', 'Feeder Set']
+  const setType = validCategories.includes(raw.set_type)
+    ? (raw.set_type as WorkoutSet['setType'])
+    : 'Working Set'
+
   return {
     id: raw.id,
     sessionId: raw.session_id,
     exerciseId: raw.exercise_id,
     setNumber: raw.set_number,
-    setCategory: raw.set_category as WorkoutSet['setCategory'],
+    setType,
     setTechnique: raw.set_technique as WorkoutSet['setTechnique'],
     loadKg: raw.load_kg,
     reps: raw.reps,
@@ -91,7 +96,7 @@ export async function upsertWorkoutSet(data: {
   sessionId: string
   exerciseId: string
   setNumber: number
-  setCategory?: string
+  setType?: string
   setTechnique?: string
   loadKg: number
   reps: number
@@ -114,7 +119,7 @@ export async function upsertWorkoutSet(data: {
       session_id: data.sessionId,
       exercise_id: data.exerciseId,
       set_number: data.setNumber,
-      set_category: data.setCategory ?? 'Working Set',
+      set_type: data.setType ?? 'Working Set',
       set_technique: data.setTechnique ?? 'Normal',
       load_kg: data.loadKg,
       reps: data.reps,
@@ -125,7 +130,7 @@ export async function upsertWorkoutSet(data: {
       one_rm_epley: oneRmEpley,
     },
     update: {
-      set_category: data.setCategory ?? 'Working Set',
+      set_type: data.setType ?? 'Working Set',
       set_technique: data.setTechnique ?? 'Normal',
       load_kg: data.loadKg,
       reps: data.reps,
@@ -145,7 +150,7 @@ export async function getProgressionForExercise(exerciseId: string, limit = 20) 
   const sets = await prisma.workoutSet.findMany({
     where: {
       exercise_id: exerciseId,
-      set_category: { in: ['Working Set', 'Top Set', 'Back Off Set'] },
+      set_type: { in: ['Working Set', 'Top Set', 'Back Off Set'] },
       rpe: { gte: 7 },
     },
     orderBy: { session: { date: 'desc' } },

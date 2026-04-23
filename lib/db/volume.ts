@@ -34,7 +34,7 @@ export async function getWeeklyVolumeByMuscle(
   // Fetch all working sets in range with their exercise muscle mappings
   const sets = await prisma.workoutSet.findMany({
     where: {
-      set_category: { in: VOLUME_CATEGORIES },
+      set_type: { in: VOLUME_CATEGORIES },
       rpe: { gte: 7 },
       session: {
         date: { gte: new Date(startDate), lte: new Date(endDate) },
@@ -83,7 +83,7 @@ export async function getSessionTonnages(
       sets: {
         some: {
           exercise_id: exerciseId,
-          set_category: { in: VOLUME_CATEGORIES },
+          set_type: { in: VOLUME_CATEGORIES },
         },
       },
     },
@@ -94,7 +94,7 @@ export async function getSessionTonnages(
       sets: {
         where: {
           exercise_id: exerciseId,
-          set_category: { in: VOLUME_CATEGORIES },
+          set_type: { in: VOLUME_CATEGORIES },
           rpe: { gte: 7 },
         },
         select: { tonnage: true },

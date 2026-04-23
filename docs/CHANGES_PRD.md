@@ -361,6 +361,9 @@ moveSessionAction(sessionId, newDayOfWeek)
 ```
 
 **Critério de aceite:**
+- [x] Aba Nutrição visível e funcional.
+- [x] Geração automática/manual integrada ao Supabase.
+- [x] Engine Adaptativo v2 implementado (Peso, Macros, Recuperação).
 - [ ] CRUD completo de fases funcionando.
 - [ ] Apenas uma fase pode ter `is_current = true` simultaneamente.
 - [ ] Botão Replanejar chama IA com contexto completo (rules + dados).
@@ -856,10 +859,10 @@ getBodyMetricsHistoryAction(limit?: number): Promise<BodyMetrics[]>
 - Tooltip com valor exato na data.
 
 **Critério de aceite:**
-- [ ] Formulário salva no Supabase (tabela `body_metrics`).
-- [ ] Gráfico exibe histórico correto após salvar.
-- [ ] Campos opcionais não quebram se vazios.
-- [ ] `date` tem constraint UNIQUE — ao salvar na mesma data, fazer upsert.
+- [x] Formulário salva no Supabase (tabela `body_metrics`).
+- [x] Gráfico exibe histórico correto após salvar.
+- [x] Campos opcionais não quebram se vazios.
+- [x] `date` tem constraint UNIQUE — ao salvar na mesma data, fazer upsert.
 
 ---
 
@@ -947,6 +950,10 @@ const latestMetrics = await prisma.$queryRaw`
 // Peso: ${metrics.weight_kg}kg, BF: ${metrics.bf_pct}%, Energia: ${metrics.energy_level}/10
 // Sono: ${metrics.sleep_hours}h, Pulso: ${metrics.wrist_cm}cm
 ```
+
+**Critério de aceite:**
+- [x] API de Nutrição utiliza medidas recentes para cálculos.
+- [ ] API de Feedback de Treino utiliza medidas (peso/energia) para ajustar intensidade.
 
 ---
 
@@ -1250,14 +1257,14 @@ Use este checklist para rastrear o progresso. Marque cada item conforme concluí
 - [ ] PLAN-002: CRUD completo de sessões e exercícios planejados
 - [ ] PLAN-003: CRUD completo de fases
 - [ ] PLAN-003: botão "Replanejar com IA" funcional com preview
-- [ ] PLAN-004: ícones de grupo muscular no card de exercício
-- [ ] PLAN-004: link de vídeo YouTube embutido por exercício
-- [ ] PLAN-004: `seed_exercises.sql` gerado e testado
+- [x] PLAN-004: ícones de grupo muscular no card de exercício
+- [x] PLAN-004: link de vídeo YouTube embutido por exercício
+- [x] PLAN-004: `seed_exercises.sql` gerado e testado
 
 ### Workout
-- [ ] WKT-001: layout duas colunas (próximos / concluídos)
-- [ ] WKT-002: `pg_trgm` ativado no Supabase
-- [ ] WKT-002: busca bilíngue e fuzzy funcional
+- [x] WKT-001: layout duas colunas (próximos / concluídos)
+- [x] WKT-002: `pg_trgm` ativado no Supabase
+- [x] WKT-002: busca bilíngue e fuzzy funcional
 - [ ] WKT-003: `WorkoutControls` component com iniciar/pausar/retomar/encerrar
 - [ ] WKT-004: persistência via Supabase + localStorage merge
 - [ ] WKT-004: timer persiste ao sair e voltar da página
@@ -1274,17 +1281,18 @@ Use este checklist para rastrear o progresso. Marque cada item conforme concluí
 
 ### Medidas
 - [x] MED-001: link "Medidas" adicionado ao navegador
-- [ ] MED-002: `app/measures/page.tsx` criado com formulário
-- [ ] MED-002: gráficos históricos funcionando
-- [ ] MED-003: análise de proporções (Steve Reeves) implementada
-- [ ] MED-003: LBM máximo natural calculado e exibido
-- [ ] MED-004: medidas integradas no contexto de IA
+- [x] MED-002: `app/measures/page.tsx` criado com formulário
+- [x] MED-002: gráficos históricos funcionando
+- [x] MED-003: análise de proporções (Steve Reeves) implementada
+- [x] MED-003: LBM máximo natural calculado e exibido
+- [x] MED-004: medidas integradas no contexto de IA
+- [x] MED-005: CRUD completo (editar/excluir) com suporte a mudança de data
 
 ### Nutrição
 - [x] NUT-001: link "Nutrição" adicionado ao navegador
-- [ ] NUT-002: `app/nutrition/page.tsx` criado
-- [ ] NUT-002: API Route `/api/ai/nutrition` criada com contexto completo
-- [ ] NUT-002: plano exibido com macros e refeições
+- [x] NUT-002: `app/nutrition/page.tsx` criado
+- [x] NUT-002: API Route `/api/ai/nutrition` criada com contexto completo
+- [x] NUT-002: plano exibido com macros e refeições
 
 ### Banco de Dados
 - [x] DB-001: colunas `name_en` e `video_url` na tabela `exercises`

@@ -23,6 +23,12 @@ export type SetCategory =
   | 'Warming Set'
   | 'Feeder Set'
 
+export type AthleteGoal =
+  | 'Crescer Seco'
+  | 'Emagrecer'
+  | 'Ganho de Peso'
+  | 'Manutenção'
+
 // Intensity technique applied to the set
 export type SetTechnique =
   | 'Normal'
@@ -156,7 +162,7 @@ export interface WorkoutSet {
   sessionId: string
   exerciseId: string
   setNumber: number
-  setCategory: SetCategory
+  setType: SetCategory
   setTechnique: SetTechnique
   loadKg: number
   reps: number

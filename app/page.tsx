@@ -55,6 +55,10 @@ export default function Dashboard() {
             <PieChart className="w-4 h-4" />
             Resumo
           </TabsTrigger>
+          <TabsTrigger value="calendar" className="gap-2">
+            <Calendar className="w-4 h-4" />
+            Calendário
+          </TabsTrigger>
           <TabsTrigger value="progress" className="gap-2">
             <TrendingUp className="w-4 h-4" />
             Progressão
@@ -82,7 +86,11 @@ export default function Dashboard() {
             <div className="lg:col-span-3">
               <GlassCard>
                 <GlassCardTitle className="mb-4">Visualização Semanal</GlassCardTitle>
-                <WorkoutCalendar onDateSelect={(d) => setViewDate(format(d, 'yyyy-MM-dd'))} selectedDate={parseISO(viewDate)} />
+                <WorkoutCalendar 
+                  initialView="week" 
+                  onDateSelect={(d) => setViewDate(format(d, 'yyyy-MM-dd'))} 
+                  selectedDate={parseISO(viewDate)} 
+                />
               </GlassCard>
             </div>
           </div>
@@ -102,6 +110,16 @@ export default function Dashboard() {
             </div>
             <MuscleVolumePanel />
           </div>
+        </TabsContent>
+
+        <TabsContent value="calendar" className="space-y-6">
+          <GlassCard>
+            <GlassCardTitle className="mb-4">Calendário de Treinos</GlassCardTitle>
+            <WorkoutCalendar onDateSelect={(d) => {
+              setViewDate(format(d, 'yyyy-MM-dd'))
+              setActiveTab('overview')
+            }} />
+          </GlassCard>
         </TabsContent>
         
         <TabsContent value="progress" className="space-y-6">

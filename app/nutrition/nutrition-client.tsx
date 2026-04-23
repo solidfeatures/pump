@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { useState, useMemo } from 'react'
+import { GlassCard, GlassCardTitle, GlassCardDescription } from '@/components/glass-card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Utensils, 
   Zap, 
@@ -10,9 +11,12 @@ import {
   RotateCcw,
   CheckCircle2,
   Clock,
-  ChevronRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Ruler,
+  History as HistoryIcon,
+  ChevronRight,
+  ArrowRight
 } from 'lucide-react'
 import { 
   PieChart, 
@@ -39,17 +43,25 @@ interface NutritionPlan {
   calories_target: number
   protein_g: number
   carbs_g: number
-  fats_g: number
+  fat_g: number
   meals: Meal[]
   ai_logic?: string
   recommendations?: string[]
 }
 
-export default function NutritionClient({ initialPlan }: { initialPlan: NutritionPlan | null }) {
+export default function NutritionClient({ 
+  initialPlan,
+  initialHistory 
+}: { 
+  initialPlan: NutritionPlan | null,
+  initialHistory: NutritionPlan[]
+}) {
   const [plan, setPlan] = useState<NutritionPlan | null>(initialPlan)
+  const [history, setHistory] = useState<NutritionPlan[]>(initialHistory)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [activeTab, setActiveTab] = useState('plan')
 
   const generateAIPlan = async () => {
     setLoading(true)
@@ -61,20 +73,27 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
       if (data.error) throw new Error(data.error)
 
       const newPlan: NutritionPlan = {
-        date: format(new Date(), 'yyyy-MM-dd'),
-        goal: data.observations,
-        calories_target: data.target_calories,
+        date: data.date,
+        goal: data.goal,
+        calories_target: data.calories_target,
         protein_g: data.protein_g,
         carbs_g: data.carbs_g,
-        fats_g: data.fats_g,
-        meals: data.meal_plan,
-        ai_logic: data.observations,
+        fat_g: data.fat_g,
+        meals: data.meals,
+        ai_logic: data.ai_logic,
         recommendations: data.recommendations
       }
       
       setPlan(newPlan)
+      setActiveTab('plan')
+      setMessage({ type: 'success', text: 'Novo plano gerado pela IA!' })
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Erro ao gerar plano' })
+      console.error('Error generating plan:', err)
+      const errorText = err.message || 'Erro ao gerar plano'
+      setMessage({ 
+        type: 'error', 
+        text: errorText
+      })
     } finally {
       setLoading(false)
     }
@@ -90,13 +109,24 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
         calories_target: plan.calories_target,
         protein_g: plan.protein_g,
         carbs_g: plan.carbs_g,
-        fats_g: plan.fats_g,
+        fat_g: plan.fat_g,
         meals: plan.meals,
-        ai_logic: plan.ai_logic
+        ai_logic: plan.ai_logic,
+        recommendations: plan.recommendations
       })
       
       if (res.success) {
         setMessage({ type: 'success', text: 'Plano salvo com sucesso!' })
+        // Update history if it's a new or updated plan for that date
+        setHistory(prev => {
+          const index = prev.findIndex(p => p.date === plan.date)
+          if (index >= 0) {
+            const newHistory = [...prev]
+            newHistory[index] = plan
+            return newHistory
+          }
+          return [plan, ...prev].sort((a, b) => b.date.localeCompare(a.date))
+        })
       } else {
         throw new Error(res.error)
       }
@@ -107,11 +137,26 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
     }
   }
 
-  const macroData = plan ? [
-    { name: 'Proteínas', value: plan.protein_g * 4, color: '#E9FF60' },
-    { name: 'Carbos', value: plan.carbs_g * 4, color: '#00F0FF' },
-    { name: 'Gorduras', value: plan.fats_g * 9, color: '#FF00E5' },
-  ] : []
+  const viewHistoricalPlan = (historicalPlan: NutritionPlan) => {
+    setPlan(historicalPlan)
+    setActiveTab('plan')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const macroData = useMemo(() => {
+    if (!plan) return []
+    return [
+      { name: 'Proteínas', value: (plan.protein_g || 0) * 4, color: '#E9FF60' },
+      { name: 'Carbos', value: (plan.carbs_g || 0) * 4, color: '#00F0FF' },
+      { name: 'Gorduras', value: (plan.fat_g || 0) * 9, color: '#FF00E5' },
+    ]
+  }, [plan])
+
+  const isHistorical = useMemo(() => {
+    if (!plan) return false
+    const today = format(new Date(), 'yyyy-MM-dd')
+    return plan.date !== today
+  }, [plan])
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -123,7 +168,12 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
             Nutrição <span className="text-[#00F0FF]">Inteligente</span>
           </h1>
           <p className="text-zinc-400 mt-1">
-            {plan ? `Plano atualizado em ${format(new Date(plan.date + 'T00:00:00'), "dd 'de' MMMM", { locale: ptBR })}` : 'Nenhum plano ativo para hoje'}
+            {plan ? (
+              <span className="flex items-center gap-2">
+                {isHistorical && <Clock className="w-4 h-4 text-amber-500" />}
+                {isHistorical ? 'Visualizando histórico de' : 'Plano atualizado em'} {format(new Date(plan.date + 'T00:00:00'), "dd 'de' MMMM", { locale: ptBR })}
+              </span>
+            ) : 'Nenhum plano ativo para hoje'}
           </p>
         </div>
 
@@ -137,7 +187,7 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
             {loading ? 'Gerando...' : 'IA Strategist'}
           </button>
           
-          {plan && (
+          {plan && !isHistorical && (
             <button
               onClick={handleSave}
               disabled={saving}
@@ -150,12 +200,33 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-zinc-900/50 border border-white/5 p-1 rounded-xl w-full max-w-md">
+          <TabsTrigger value="plan" className="flex-1 data-[state=active]:bg-[#00F0FF] data-[state=active]:text-black">Plano</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1 data-[state=active]:bg-[#00F0FF] data-[state=active]:text-black">Histórico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="plan" className="space-y-8">
+
+
       {message && (
-        <div className={`p-4 rounded-xl border flex items-center gap-3 animate-in slide-in-from-top duration-300 ${
-          message.type === 'success' ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'
+        <div className={`p-6 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in slide-in-from-top duration-300 ${
+          message.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'
         }`}>
-          {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          {message.text}
+          <div className="flex items-center gap-3">
+            {message.type === 'success' ? <CheckCircle2 className="w-6 h-6 shrink-0" /> : <AlertCircle className="w-6 h-6 shrink-0" />}
+            <span className="font-medium">{message.text}</span>
+          </div>
+          
+          {message.type === 'error' && message.text.includes('Medidas') && (
+            <a 
+              href="/measures" 
+              className="flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg transition-all border border-red-500/30 font-bold text-sm"
+            >
+              <Ruler className="w-4 h-4" />
+              Ir para Medidas
+            </a>
+          )}
         </div>
       )}
 
@@ -204,7 +275,7 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
                 {[
                   { label: 'Prot', val: plan.protein_g, color: 'text-[#E9FF60]' },
                   { label: 'Carb', val: plan.carbs_g, color: 'text-[#00F0FF]' },
-                  { label: 'Gord', val: plan.fats_g, color: 'text-[#FF00E5]' },
+                  { label: 'Gord', val: plan.fat_g, color: 'text-[#FF00E5]' },
                 ].map(macro => (
                   <div key={macro.label} className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
                     <div className="text-[10px] text-zinc-500 uppercase font-bold">{macro.label}</div>
@@ -252,19 +323,21 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
                   <Brain className="w-4 h-4" />
                   Observações da IA
                 </h3>
-                <p className="text-zinc-300 italic text-sm leading-relaxed">
-                  "{plan.ai_logic}"
-                </p>
-                {plan.recommendations && (
-                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {plan.recommendations.map((rec, i) => (
-                        <div key={i} className="flex items-start gap-2 text-xs text-zinc-400">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#E9FF60] mt-0.5" />
-                          {rec}
-                        </div>
-                      ))}
-                   </div>
-                )}
+                <div className="space-y-4">
+                  <p className="text-zinc-300 italic text-sm leading-relaxed">
+                    "{plan.ai_logic}"
+                  </p>
+                  {plan.recommendations && plan.recommendations.length > 0 && (
+                     <div className="pt-4 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {plan.recommendations.map((rec, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-zinc-400">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#E9FF60] flex-shrink-0" />
+                            <span>{rec}</span>
+                          </div>
+                        ))}
+                     </div>
+                  )}
+                </div>
               </GlassCard>
             )}
           </div>
@@ -276,18 +349,73 @@ export default function NutritionClient({ initialPlan }: { initialPlan: Nutritio
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Sem Plano de Dieta</h2>
           <p className="text-zinc-500 max-w-md mb-8">
-            Você ainda não gerou um plano nutricional. Use o Strategist IA para criar um plano personalizado baseado no seu peso, BF e volume de treino atual.
+            Você ainda não gerou um plano nutricional. Use o Strategist IA para criar um plano personalizado baseado no seu peso, altura e fase de treino atual.
           </p>
           <button
             onClick={generateAIPlan}
             disabled={loading}
-            className="flex items-center gap-2 bg-[#00F0FF] hover:bg-[#00d8e6] text-black px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all disabled:opacity-50"
+            className="flex items-center gap-2 bg-[#00F0FF] hover:bg-[#00d8e6] text-black px-8 py-4 rounded-2xl font-black uppercase tracking-tighter transition-all disabled:opacity-50 shadow-lg shadow-[#00F0FF]/20"
           >
             {loading ? <RotateCcw className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-current" />}
             {loading ? 'Gerando seu Plano...' : 'Gerar Plano agora'}
           </button>
         </div>
       )}
-    </div>
+      </TabsContent>
+
+      <TabsContent value="history" className="space-y-6">
+        <GlassCard className="p-6">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <HistoryIcon className="w-6 h-6 text-[#00F0FF]" />
+                Histórico Nutricional
+              </h2>
+              <p className="text-zinc-400 text-sm">Acompanhe a evolução das suas metas e macros.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {history.length > 0 ? history.map((hPlan, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => viewHistoricalPlan(hPlan)}
+                className="group p-4 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-[#00F0FF]/30 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center text-[#E9FF60] group-hover:scale-110 transition-transform">
+                    <Utensils className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-white group-hover:text-[#00F0FF] transition-colors uppercase tracking-tight">
+                      {format(new Date(hPlan.date + 'T00:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </div>
+                    <div className="text-xs text-zinc-500 uppercase font-bold tracking-widest">{hPlan.goal}</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="px-3 py-1 rounded-full bg-[#E9FF60]/10 border border-[#E9FF60]/20 text-[#E9FF60] text-xs font-bold">
+                    {hPlan.calories_target} kcal
+                  </div>
+                  <div className="flex gap-2 text-[10px] font-bold">
+                    <span className="text-zinc-400">P: {hPlan.protein_g}g</span>
+                    <span className="text-zinc-400">C: {hPlan.carbs_g}g</span>
+                    <span className="text-zinc-400">G: {hPlan.fat_g}g</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-[#00F0FF] group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-20 text-zinc-500 italic">
+                Nenhum plano anterior encontrado.
+              </div>
+            )}
+          </div>
+        </GlassCard>
+      </TabsContent>
+    </Tabs>
+  </div>
   )
 }
+

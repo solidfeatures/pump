@@ -48,7 +48,9 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
   /** Controlled RIR string — source of truth when user edits RIR */
   const [rir, setRir]         = useState(set.rpe != null ? clampRir(10 - set.rpe).toString() : '')
 
-  const [category, setCategory]             = useState<SetCategory>(set.setCategory)
+  const [setType, setSetType] = useState<SetCategory>(
+    (CATEGORY_LABELS[set.setType] ? set.setType : 'Working Set') as SetCategory
+  )
   const [isSaving, setIsSaving]             = useState(false)
   const [showSaved, setShowSaved]           = useState(false)
   const [showTimer, setShowTimer]           = useState(false)
@@ -85,7 +87,7 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
   // ── Rest & set-type helpers ───────────────────────────────────────────────
   const repsForRest   = (reps ? parseInt(reps) : null) ?? targetRepsMax ?? 8
   const recommendedRest = getRestTimeRange(repsForRest)
-  const isCountedSet  = category === 'Working Set' || category === 'Top Set' || category === 'Back Off Set'
+  const isCountedSet  = setType === 'Working Set' || setType === 'Top Set' || setType === 'Back Off Set'
 
   // ── Autosave ──────────────────────────────────────────────────────────────
   const handleSave = useCallback(() => {
@@ -99,7 +101,7 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
         loadKg:      weightNum,
         reps:        repsNum,
         rpe:         rpeVal,
-        setCategory: category,
+        setType: setType,
         completed:   weightNum > 0 && repsNum > 0,
       })
 
@@ -111,7 +113,7 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
         savedTimeoutRef.current = setTimeout(() => setShowSaved(false), 2000)
       }, 300)
     }
-  }, [sessionId, exerciseId, set.setNumber, set.completed, weight, reps, rpe, category, isCountedSet, updateSet])
+  }, [sessionId, exerciseId, set.setNumber, set.completed, weight, reps, rpe, setType, isCountedSet, updateSet])
 
   useEffect(() => {
     if (!isActive) return
@@ -126,12 +128,12 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
 
   // ── Category cycling ──────────────────────────────────────────────────────
   const cycleCategory = () => {
-    const next = CATEGORY_CYCLE[(CATEGORY_CYCLE.indexOf(category) + 1) % CATEGORY_CYCLE.length]
-    setCategory(next)
-    updateSet(sessionId, exerciseId, set.setNumber, { setCategory: next })
+    const next = CATEGORY_CYCLE[(CATEGORY_CYCLE.indexOf(setType) + 1) % CATEGORY_CYCLE.length]
+    setSetType(next)
+    updateSet(sessionId, exerciseId, set.setNumber, { setType: next })
   }
 
-  const catStyle = CATEGORY_LABELS[category]
+  const catStyle = CATEGORY_LABELS[setType] || CATEGORY_LABELS['Working Set']
 
   const inputCls = "text-center bg-white/5 border-white/10 focus:border-primary h-10 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 
@@ -164,11 +166,11 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
             disabled={!isActive}
             className={cn(
               'w-7 h-7 rounded-md border text-xs font-bold flex items-center justify-center transition-all',
-              catStyle.color,
+              catStyle?.color || 'bg-white/10 text-muted-foreground border-white/10',
               isActive ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'
             )}
           >
-            {catStyle.label}
+            {catStyle?.label || '?'}
           </button>
           <AnimatePresence>
             {showCategoryTooltip && (
@@ -179,7 +181,7 @@ export function SetInput({ sessionId, exerciseId, set, isActive, targetRepsMax, 
                 className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-20 pointer-events-none"
               >
                 <div className="glass px-2 py-1 rounded text-xs whitespace-nowrap border border-white/10 shadow-xl">
-                  {catStyle.description}
+                  {catStyle?.description || 'Categoria desconhecida'}
                 </div>
               </motion.div>
             )}

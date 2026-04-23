@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Home, Calendar, Dumbbell, BarChart3, Zap, BookOpen, Ruler, Utensils } from 'lucide-react'
+import { Home, Calendar, Dumbbell, BarChart3, Zap, BookOpen, Ruler, Utensils, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/history', label: 'Histórico', icon: BarChart3 },
   { href: '/measures', label: 'Medidas', icon: Ruler },
   { href: '/nutrition', label: 'Nutrição', icon: Utensils },
+  { href: '/profile', label: 'Perfil', icon: User },
 ]
 
 export function Navigation() {

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 
 export interface CoachingRule {
-  id: number
+  id: string
   category: string
   title: string
   rule: string
@@ -27,7 +27,7 @@ export interface CreateRuleInput {
 }
 
 export interface UpdateRuleInput extends CreateRuleInput {
-  id: number
+  id: string
 }
 
 function tagsToSql(tags: string[]): Prisma.Sql {
@@ -83,12 +83,12 @@ export async function updateRule(input: UpdateRuleInput): Promise<CoachingRule> 
   return rows[0]
 }
 
-export async function toggleRule(id: number, is_active: boolean): Promise<void> {
+export async function toggleRule(id: string, is_active: boolean): Promise<void> {
   await prisma.$executeRaw`
     UPDATE ai_coaching_rules SET is_active = ${is_active}, updated_at = NOW() WHERE id = ${id}
   `
 }
 
-export async function deleteRule(id: number): Promise<void> {
+export async function deleteRule(id: string): Promise<void> {
   await prisma.$executeRaw`DELETE FROM ai_coaching_rules WHERE id = ${id}`
 }

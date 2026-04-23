@@ -1,6 +1,6 @@
 'use server'
 
-import { BodyMetric, upsertBodyMetrics, getBodyMetricsHistory } from '@/lib/db/measures'
+import { BodyMetric, upsertBodyMetrics, getBodyMetricsHistory, deleteBodyMetric } from '@/lib/db/measures'
 import { revalidatePath } from 'next/cache'
 
 export async function saveMeasuresAction(metrics: Partial<BodyMetric>) {
@@ -22,5 +22,20 @@ export async function getMeasuresHistoryAction(limit = 30) {
   } catch (error) {
     console.error('[getMeasuresHistoryAction]', error)
     return { success: false, error: 'Falha ao buscar histórico' }
+  }
+}
+
+export async function deleteMeasureAction(id: string) {
+  try {
+    const success = await deleteBodyMetric(id)
+    if (success) {
+      revalidatePath('/measures')
+      revalidatePath('/')
+      return { success: true }
+    }
+    return { success: false, error: 'Erro ao excluir registro' }
+  } catch (error) {
+    console.error('[deleteMeasureAction]', error)
+    return { success: false, error: 'Falha ao excluir medida' }
   }
 }

@@ -23,3 +23,14 @@ export async function saveNutritionAction(plan: Partial<NutritionPlan>) {
     return { success: false, error: 'Falha ao salvar plano nutricional' }
   }
 }
+
+export async function getNutritionHistoryAction(limit = 10) {
+  try {
+    const { getNutritionHistory } = await import('@/lib/db/nutrition')
+    const history = await getNutritionHistory(limit)
+    return { success: true, data: history }
+  } catch (error) {
+    console.error('[getNutritionHistoryAction]', error)
+    return { success: false, error: 'Falha ao buscar histórico' }
+  }
+}

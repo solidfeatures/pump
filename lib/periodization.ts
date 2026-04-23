@@ -60,8 +60,8 @@ export function formatRestTime(range: RestTimeRange): string {
  * Determines if a set counts for weekly volume.
  * Rules: must be a Working/Top/Back Off Set AND RPE ≥ 7 (or RPE not recorded).
  */
-export function isWorkingSet(set: Pick<WorkoutSet, 'setCategory' | 'rpe'>): boolean {
-  if (!VOLUME_CATEGORIES.includes(set.setCategory)) return false
+export function isWorkingSet(set: Pick<WorkoutSet, 'setType' | 'rpe'>): boolean {
+  if (!VOLUME_CATEGORIES.includes(set.setType)) return false
   if (set.rpe !== null && set.rpe < MIN_WORKING_RPE) return false
   return true
 }
@@ -76,7 +76,7 @@ export function isWorkingSet(set: Pick<WorkoutSet, 'setCategory' | 'rpe'>): bool
  * Pull movements: secondary shoulder volume → Deltóide Posterior
  */
 export function calculateWeeklyVolumeByMuscle(
-  sets: Pick<WorkoutSet, 'exerciseId' | 'setCategory' | 'rpe'>[],
+  sets: Pick<WorkoutSet, 'exerciseId' | 'setType' | 'rpe'>[],
   exerciseMuscleMap: Record<string, ExerciseMuscle[]>
 ): Record<MuscleGroup, number> {
   const volume = {} as Record<MuscleGroup, number>

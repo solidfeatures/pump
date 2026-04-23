@@ -27,21 +27,89 @@ import {
   subWeeks,
   addDays,
   subDays,
+  parseISO,
+  min,
+  max,
+  getYear,
+  getMonth,
+  setYear,
+  setMonth
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { CalendarView, WorkoutSession } from '@/lib/types'
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select'
+
 
 interface WorkoutCalendarProps {
   onDateSelect?: (date: Date) => void
   selectedDate?: Date
+  initialView?: CalendarView
+  initialDate?: Date
 }
 
-export function WorkoutCalendar({ onDateSelect, selectedDate }: WorkoutCalendarProps) {
+export function WorkoutCalendar({ 
+  onDateSelect, 
+  selectedDate,
+  initialView = 'month',
+  initialDate
+}: WorkoutCalendarProps) {
   const { sessions, getSessionByDate } = useWorkout()
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<CalendarView>('week')
+  const [currentDate, setCurrentDate] = useState(initialDate || selectedDate || new Date())
+  const [view, setView] = useState<CalendarView>(initialView)
+  
+  // Calculate date range for constraints
+  const sessionDates = useMemo(() => {
+    if (sessions.length === 0) return { minDate: new Date(), maxDate: new Date() }
+    const dates = sessions.map(s => parseISO(s.date))
+    return {
+      minDate: startOfMonth(min(dates)),
+      maxDate: endOfMonth(max(dates))
+    }
+  }, [sessions])
+
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const startYear = Math.min(sessionDates.minDate.getFullYear(), currentYear - 2)
+    const endYear = Math.max(sessionDates.maxDate.getFullYear(), currentYear + 1)
+    const result = []
+    for (let y = startYear; y <= endYear; y++) {
+      result.push(y)
+    }
+    return result
+  }, [sessionDates])
+
+
+
+  const handleYearChange = (year: string) => {
+    setCurrentDate(setYear(currentDate, parseInt(year)))
+  }
+
+  const handleMonthChange = (month: string) => {
+    setCurrentDate(setMonth(currentDate, parseInt(month)))
+  }
+
+  const months = [
+    { value: '0', label: 'Janeiro' },
+    { value: '1', label: 'Fevereiro' },
+    { value: '2', label: 'Março' },
+    { value: '3', label: 'Abril' },
+    { value: '4', label: 'Maio' },
+    { value: '5', label: 'Junho' },
+    { value: '6', label: 'Julho' },
+    { value: '7', label: 'Agosto' },
+    { value: '8', label: 'Setembro' },
+    { value: '9', label: 'Outubro' },
+    { value: '10', label: 'Novembro' },
+    { value: '11', label: 'Dezembro' }
+  ]
   
   const today = new Date()
   
@@ -97,42 +165,91 @@ export function WorkoutCalendar({ onDateSelect, selectedDate }: WorkoutCalendarP
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={goBack}
             className="rounded-full hover:bg-white/10"
+            disabled={view === 'month' && isSameDay(startOfMonth(currentDate), sessionDates.minDate)}
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
           
-          <motion.h2 
-            key={getTitle()}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-lg font-semibold min-w-48 text-center capitalize"
-          >
-            {getTitle()}
-          </motion.h2>
+          <div className="flex items-center gap-2 min-w-[200px] justify-center">
+            <Select 
+              value={currentDate.getMonth().toString()} 
+              onValueChange={(val) => {
+                const newDate = new Date(currentDate)
+                newDate.setMonth(parseInt(val))
+                setCurrentDate(newDate)
+              }}
+            >
+              <SelectTrigger className="w-[130px] h-9 bg-white/5 border-white/10">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map(m => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={currentDate.getFullYear().toString()} 
+              onValueChange={(val) => {
+                const newDate = new Date(currentDate)
+                newDate.setFullYear(parseInt(val))
+                setCurrentDate(newDate)
+              }}
+            >
+              <SelectTrigger className="w-[90px] h-9 bg-white/5 border-white/10">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(y => (
+                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           <Button
             variant="ghost"
             size="icon"
             onClick={goNext}
             className="rounded-full hover:bg-white/10"
+            disabled={view === 'month' && isSameDay(endOfMonth(currentDate), sessionDates.maxDate)}
           >
             <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
         
         <div className="flex items-center gap-2">
+          <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 mr-2">
+            <Button
+              variant={view === 'week' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setView('week')}
+              className="h-7 text-xs px-3"
+            >
+              Semana
+            </Button>
+            <Button
+              variant={view === 'month' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setView('month')}
+              className="h-7 text-xs px-3"
+            >
+              Mês
+            </Button>
+          </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={goToToday}
-            className="text-xs"
+            className="text-xs h-9 bg-white/5 hover:bg-white/10 border border-white/10"
           >
             Hoje
           </Button>

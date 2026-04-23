@@ -11,7 +11,6 @@ function mapExercise(raw: {
   neural_demand: number | null
   created_at: Date
   muscles?: {
-    id: string
     exercise_id: string
     muscle_group: string
     muscle: string
@@ -29,11 +28,11 @@ function mapExercise(raw: {
     neuralDemand: raw.neural_demand,
     createdAt: raw.created_at,
     muscles: raw.muscles?.map((m) => ({
-      id: m.id,
+      id: `${m.exercise_id}-${m.muscle}`,
       exerciseId: m.exercise_id,
       muscleGroup: m.muscle_group as ExerciseMuscle['muscleGroup'],
       muscle: m.muscle,
-      seriesFactor: m.series_factor,
+      seriesFactor: Number(m.series_factor),
       createdAt: m.created_at,
     })),
   }

@@ -6,10 +6,11 @@ import { useWorkout } from '@/lib/workout-context'
 import { WorkoutExerciseCard } from '@/components/workout-exercise-card'
 import { AddExerciseModal } from '@/components/add-exercise-modal'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Clock, Dumbbell, Flag, Pause, Play, Plus, Square } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { BackButton } from '@/components/back-button'
 import { notFound } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
+import { WorkoutControls } from '@/components/workout-controls'
 
 const TIMER_KEY = (id: string) => `antigravity-timer-${id}`
 
@@ -90,14 +91,6 @@ export default function WorkoutPlayerPage({
   )
   const progress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0
 
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    if (hrs > 0) return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-
   const handleStart = () => {
     startWorkout(session.id)
     accumulatedRef.current = 0
@@ -132,12 +125,12 @@ export default function WorkoutPlayerPage({
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-32">
       {/* Sticky Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-40 glass border-b border-white/5"
+        className="sticky top-0 z-40 glass border-b border-white/5 shadow-2xl"
       >
         <div className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
@@ -152,88 +145,34 @@ export default function WorkoutPlayerPage({
             </div>
 
             {/* Timer + Controls */}
-            <div className="flex items-center gap-2">
-              {(isInProgress || isPaused) && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-sm">
-                  <Clock className={`w-4 h-4 ${isPaused ? 'text-muted-foreground' : 'text-primary'}`} />
-                  <span className={`font-mono tabular-nums ${isPaused ? 'text-muted-foreground' : ''}`}>
-                    {formatTime(elapsedTime)}
-                  </span>
-                </div>
-              )}
-
-              {isInProgress && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handlePause}
-                  title="Pausar treino"
-                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10"
-                >
-                  <Pause className="w-4 h-4" />
-                </Button>
-              )}
-
-              {isPaused && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleResume}
-                  title="Retomar treino"
-                  className="w-9 h-9 rounded-full bg-primary/20 hover:bg-primary/30 text-primary"
-                >
-                  <Play className="w-4 h-4" />
-                </Button>
-              )}
-
-              {isCompleted && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Concluído · {formatTime(elapsedTime)}</span>
-                </div>
-              )}
-            </div>
+            <WorkoutControls
+              status={session.status as any}
+              onStart={handleStart}
+              onPause={handlePause}
+              onResume={handleResume}
+              onComplete={handleComplete}
+              elapsed={elapsedTime}
+            />
           </div>
 
           {/* Progress bar */}
           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-primary rounded-full"
+              className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
             />
           </div>
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>{completedSets} de {totalSets} séries</span>
+          <div className="flex justify-between mt-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
+            <span>{completedSets} de {totalSets} séries concluídas</span>
             <span>{Math.round(progress)}%</span>
           </div>
         </div>
       </motion.div>
 
-      {/* Start CTA */}
-      {!isInProgress && !isPaused && !isCompleted && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 md:p-6"
-        >
-          <div className="glass rounded-2xl p-6 text-center glow-emerald">
-            <Dumbbell className="w-12 h-12 mx-auto mb-4 text-primary" />
-            <h2 className="text-xl font-bold mb-2">Pronto para treinar?</h2>
-            <p className="text-muted-foreground mb-6">
-              Inicie o treino para começar a registrar suas séries e progressão.
-            </p>
-            <Button onClick={handleStart} size="lg" className="gap-2">
-              <Clock className="w-5 h-5" />
-              Iniciar Treino
-            </Button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Exercise List */}
-      <div className="p-4 md:p-6 space-y-4">
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
         <AnimatePresence mode="popLayout">
           {(session.exercises ?? []).map((exercise, index) => (
             <motion.div
@@ -248,7 +187,7 @@ export default function WorkoutPlayerPage({
                 sessionId={session.id}
                 exercise={exercise}
                 plannedSessionId={session.plannedSessionId ?? undefined}
-                isActive={isInProgress || isPaused || isCompleted}
+                isActive={isInProgress || isPaused}
               />
             </motion.div>
           ))}
@@ -260,39 +199,14 @@ export default function WorkoutPlayerPage({
             <Button
               variant="outline"
               onClick={() => setShowAddExercise(true)}
-              className="w-full h-14 border-dashed border-white/20 hover:border-primary/50 hover:bg-primary/5 gap-2"
+              className="w-full h-16 border-dashed border-white/10 hover:border-primary/50 hover:bg-primary/5 gap-2 rounded-2xl cursor-pointer"
             >
-              <Plus className="w-5 h-5" />
-              Adicionar Exercício
+              <Plus className="w-5 h-5 text-primary" />
+              <span className="font-semibold text-muted-foreground hover:text-foreground">Adicionar Exercício</span>
             </Button>
           </motion.div>
         )}
       </div>
-
-      {/* ── Finish button — always shown when session active ── */}
-      {(isInProgress || isPaused) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="sticky bottom-20 md:bottom-6 px-4 md:px-6 pb-4"
-        >
-          <button
-            onClick={handleComplete}
-            className="w-full h-14 rounded-2xl flex items-center justify-center gap-3 text-base font-semibold
-              bg-gradient-to-r from-emerald-500 to-green-400 text-black
-              hover:from-emerald-400 hover:to-green-300
-              active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/25"
-          >
-            <Flag className="w-5 h-5" />
-            Finalizar Treino
-            {progress > 0 && (
-              <span className="ml-1 text-sm font-normal opacity-70">
-                · {completedSets}/{totalSets} séries
-              </span>
-            )}
-          </button>
-        </motion.div>
-      )}
 
       <AddExerciseModal
         open={showAddExercise}

@@ -22,6 +22,7 @@ model TrainingPhase {
   progression_rule     String?
   is_current           Boolean          @default(false)
   created_at           DateTime         @default(now()) @db.Timestamptz(6)
+  nutrition_plans      NutritionPlan[]
   sessions             PlannedSession[]
 
   @@map("training_phases")
@@ -30,16 +31,17 @@ model TrainingPhase {
 model Exercise {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String            @unique
-  name_en          String?           @unique
-  video_url        String?
   movement_pattern String?
   classification   String?
   neural_demand    Int?
   created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  name_en          String?           @unique
+  video_url        String?
   muscles          ExerciseMuscle[]
   plannedExercises PlannedExercise[]
   workoutSets      WorkoutSet[]
 
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_exercises_name_trgm", type: Gin)
   @@map("exercises")
 }
 
@@ -59,8 +61,11 @@ model AthleteProfile {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String   @default("Atleta")
   experience_level String   @default("Intermediário")
+  goal             String   @default("Crescer Seco")
   injuries         String[]
   training_days    Int      @default(4)
+  gender           String   @default("Masculino")
+  birth_date       DateTime @default(dbgenerated("'2000-01-01'::timestamp")) @db.Timestamptz(6)
   created_at       DateTime @default(now()) @db.Timestamptz(6)
   updated_at       DateTime @default(now()) @db.Timestamptz(6)
 
@@ -77,11 +82,11 @@ model PlannedSession {
   day_of_week       Int?
   planned_date      DateTime?         @db.Date
   status            String            @default("Pendente")
-  actual_session_id Int?
+  actual_session_id String?           @db.Uuid
   ai_notes          String?
   created_at        DateTime          @default(now()) @db.Timestamptz(6)
   exercises         PlannedExercise[]
-  phase             TrainingPhase?    @relation(fields: [phase_id], references: [id], onDelete: SetNull)
+  phase             TrainingPhase?    @relation(fields: [phase_id], references: [id])
 
   @@map("planned_sessions")
 }
@@ -128,8 +133,8 @@ model WorkoutSet {
   rpe           Decimal?       @db.Decimal(3, 1)
   rir           Int?
   notes         String?
-  tonnage       Decimal?       @db.Decimal(8, 2) @ignore // Generated in DB
-  one_rm_epley  Decimal?       @db.Decimal(7, 2) @ignore // Generated in DB
+  tonnage       Decimal?       @ignore @db.Decimal(8, 2)
+  one_rm_epley  Decimal?       @ignore @db.Decimal(7, 2)
   created_at    DateTime       @default(now()) @db.Timestamptz(6)
   exercise      Exercise       @relation(fields: [exercise_id], references: [id])
   session       WorkoutSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
@@ -139,39 +144,57 @@ model WorkoutSet {
 }
 
 model BodyMetric {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  date         DateTime @unique @db.Date
-  weight_kg    Decimal? @db.Decimal(5, 2)
-  height_cm    Decimal? @db.Decimal(5, 1)
-  bf_pct       Decimal? @db.Decimal(4, 1)
-  sleep_hours  Decimal? @db.Decimal(3, 1)
-  waist_cm     Decimal? @db.Decimal(5, 1)
-  chest_cm     Decimal? @db.Decimal(5, 1)
-  arms_cm      Decimal? @db.Decimal(5, 1)
-  forearms_cm  Decimal? @db.Decimal(5, 1)
-  thighs_cm    Decimal? @db.Decimal(5, 1)
-  calves_cm    Decimal? @db.Decimal(5, 1)
-  wrist_cm     Decimal? @db.Decimal(5, 1)
-  ankle_cm     Decimal? @db.Decimal(5, 1)
-  pain_notes   String?
-  energy_level Int?
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date             DateTime @unique @db.Date
+  weight_kg        Decimal? @db.Decimal(5, 2)
+  height_cm        Decimal? @db.Decimal(5, 1)
+  bf_pct           Decimal? @db.Decimal(4, 1)
+  sleep_hours      Decimal? @db.Decimal(3, 1)
+  waist_cm         Decimal? @db.Decimal(5, 1)
+  chest_cm         Decimal? @db.Decimal(5, 1)
+  shoulders_cm     Decimal? @db.Decimal(5, 1)
+  arms_cm          Decimal? @db.Decimal(5, 1)
+  arm_left_cm      Decimal? @db.Decimal(5, 1)
+  arm_right_cm     Decimal? @db.Decimal(5, 1)
+  forearms_cm      Decimal? @db.Decimal(5, 1)
+  forearm_left_cm  Decimal? @db.Decimal(5, 1)
+  forearm_right_cm Decimal? @db.Decimal(5, 1)
+  thighs_cm        Decimal? @db.Decimal(5, 1)
+  thigh_left_cm    Decimal? @db.Decimal(5, 1)
+  thigh_right_cm   Decimal? @db.Decimal(5, 1)
+  calves_cm        Decimal? @db.Decimal(5, 1)
+  calf_left_cm     Decimal? @db.Decimal(5, 1)
+  calf_right_cm    Decimal? @db.Decimal(5, 1)
+  pain_notes       String?
+  energy_level     Int?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  wrist_cm         Decimal? @db.Decimal(5, 1)
+  ankle_cm         Decimal? @db.Decimal(5, 1)
+  neck_cm          Decimal? @db.Decimal(5, 1)
+  hips_cm          Decimal? @db.Decimal(5, 1)
 
   @@map("body_metrics")
 }
 
 model NutritionPlan {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  athlete_id      String?  @db.Uuid
-  date            DateTime @unique @default(dbgenerated("CURRENT_DATE")) @db.Date
-  goal            String
-  calories_target Int
-  protein_g       Int
-  carbs_g         Int
-  fats_g          Int
-  meals           Json?
-  ai_logic        String?
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  id                   String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  generated_at         DateTime?      @default(now()) @db.Timestamptz(6)
+  phase_id             String?        @db.Uuid
+  weight_at_generation Decimal?       @db.Decimal(5, 2)
+  calories_target      Int?
+  protein_g            Int?
+  carbs_g              Int?
+  fat_g                Int?
+  observations         String?
+  recommendations      String[]
+  meal_plan            Json?
+  model_used           String?        @default("claude-3-5-sonnet")
+  created_at           DateTime?      @default(now()) @db.Timestamptz(6)
+  date                 DateTime       @unique @db.Date
+  goal                 String
+  meals                Json
+  ai_logic             String
+  training_phases      TrainingPhase? @relation(fields: [phase_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("nutrition_plans")
 }
@@ -202,5 +225,8 @@ model AiCoachingRule {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @default(now()) @db.Timestamptz(6)
 
+  @@index([is_active], map: "idx_coaching_rules_active")
+  @@index([category], map: "idx_coaching_rules_category")
+  @@index([priority(sort: Desc)], map: "idx_coaching_rules_priority")
   @@map("ai_coaching_rules")
 }
