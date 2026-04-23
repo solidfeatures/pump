@@ -212,6 +212,17 @@ model ClinicalAlert {
   @@map("clinical_alerts")
 }
 
+model ProgressPhoto {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date         DateTime @db.Date
+  storage_path String
+  angle        String   @default("Frente")
+  notes        String?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("progress_photos")
+}
+
 model AiCoachingRule {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   category   String

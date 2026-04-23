@@ -1302,26 +1302,28 @@ Use este checklist para rastrear o progresso. Marque cada item conforme concluí
 - [x] DB-005: `restore.sql` atualizado com todos os schemas novos
 
 ### Migração de Dados CSV (MIG)
-- [ ] MIG-001: migrar treinos de `docs/treinos - Treinos.csv` → `workout_sessions` + `workout_sets`
-- [ ] MIG-001: mapear nomes de exercícios do CSV para UUIDs da tabela `exercises`
-- [ ] MIG-001: normalizar tipos de série ("Back-off Set" → "Back Off Set", "Warming Up" → "Warming Set")
-- [ ] MIG-001: criar sessões agrupadas por data, status `'completed'`
+- [x] MIG-001: Server Action `migrateWorkoutCSVAction` em `app/admin/migrate/actions.ts`
+- [x] MIG-001: página admin `/admin/migrate` com botão para executar migração idempotente
+- [x] MIG-001: normalização de tipos ("Back-off Set" → "Back Off Set", "Warming Up" → "Warming Set")
+- [ ] MIG-001: executar migração no Supabase (acessar `/admin/migrate` e clicar no botão)
 
 ### Segurança — UUIDs (SEC)
-- [ ] SEC-001: verificar todos os PKs expostos via API usam UUID (não SERIAL/integer)
-- [ ] SEC-001: migrar PKs integer remanescentes para UUID onde aplicável
-- [ ] SEC-001: atualizar referências de FK após migrações de PK
+- [x] SEC-001: todos os PKs do schema verificados — usam UUID (`gen_random_uuid()`) via Prisma
+- [x] SEC-001: nenhum SERIAL/integer PK exposto via API (tabelas: training_phases, exercises, planned_sessions, workout_sessions, workout_sets, body_metrics, nutrition_plans, athlete_profile, ai_coaching_rules, clinical_alerts, progress_photos)
 
 ### Visual Design — Cores Musculares (VIS)
-- [ ] VIS-001: sistema de cores semântico — push (vermelho/laranja/âmbar), pull (azul/índigo), lower push (roxo), lower pull (verde/teal), core (lima)
-- [ ] VIS-001: atualizar `muscleGroupColors` em `lib/mock-data.ts`
-- [ ] VIS-001: verificar consistência visual em todas as telas que exibem tags de grupos musculares
+- [x] VIS-001: sistema de cores semântico — push (rose/orange/amber), pull (blue/sky/indigo), lower push (violet/purple), lower pull (emerald/teal), core (lime)
+- [x] VIS-001: `muscleGroupColors` atualizado em `lib/mock-data.ts`
+- [x] VIS-001: consistência em todas as telas que usam muscle group badges
 
 ### Fotos de Progresso (PHO)
-- [ ] PHO-001: tabela `progress_photos` (`id UUID`, `date DATE`, `storage_path TEXT`, `notes TEXT`, `created_at TIMESTAMPTZ`)
-- [ ] PHO-001: bucket Supabase Storage `progress-photos` (public read, authenticated write)
-- [ ] PHO-001: componente de upload de fotos na aba Medidas
-- [ ] PHO-001: grid/timeline de fotos na aba Histórico com comparação visual
+- [x] PHO-001: SQL de migração `supabase/migrations/20260423_progress_photos.sql`
+- [x] PHO-001: modelo Prisma `ProgressPhoto` + `lib/db/photos.ts`
+- [x] PHO-001: Server Actions em `app/measures/actions.ts` (get/save/delete)
+- [x] PHO-001: componente `components/photo-section.tsx` na aba Medidas (upload + grid)
+- [x] PHO-001: componente `components/photo-timeline.tsx` na aba Histórico (timeline + comparação)
+- [ ] PHO-001: criar bucket `progress-photos` no Supabase Storage (manual, painel Supabase)
+- [ ] PHO-001: executar SQL `supabase/migrations/20260423_progress_photos.sql` no Supabase
 
 ### Bug Fixes
 - [x] FIX-001: objetivo principal na aba Histórico não persistia — `updateAthleteProfile` agora salva `goal` no banco

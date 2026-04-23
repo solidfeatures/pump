@@ -27,6 +27,7 @@ import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 import { muscleGroupLabels, muscleGroupColors, getExercisePrimaryMuscle } from '@/lib/mock-data'
+import { PhotoTimeline } from '@/components/photo-timeline'
 import { cn } from '@/lib/utils'
 import { AthleteProfile, updateAthleteProfile } from '@/lib/db/athlete'
 import { BodyMetric } from '@/lib/db/measures'
@@ -138,6 +139,11 @@ export default function HistoryPage() {
           Revise seus treinos anteriores e acompanhe seu progresso.
         </p>
       </motion.div>
+
+      {/* Progress photo timeline */}
+      <div className="mb-8">
+        <PhotoTimeline />
+      </div>
 
       {/* Resumo do Atleta e Nutrição */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">

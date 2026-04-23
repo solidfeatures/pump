@@ -547,11 +547,19 @@ export function generatePRRecords(): PRRecord[] {
 
 // ─── UI LABELS ────────────────────────────────────────────────────────────────
 
+// Push (red/orange/amber) · Pull (blue/indigo) · Lower push (violet/purple) · Lower pull (emerald/teal) · Core (lime)
 export const muscleGroupColors: Record<MuscleGroup, string> = {
-  chest: 'bg-emerald-500', back: 'bg-emerald-400', shoulders: 'bg-emerald-600',
-  biceps: 'bg-teal-500', triceps: 'bg-teal-400',
-  quadriceps: 'bg-cyan-500', hamstrings: 'bg-cyan-400', glutes: 'bg-cyan-600',
-  calves: 'bg-sky-500', core: 'bg-sky-400', forearms: 'bg-sky-600',
+  chest: 'bg-rose-500',       // push horizontal — primary
+  triceps: 'bg-orange-500',   // push extension — assistance
+  shoulders: 'bg-amber-600',  // push overhead
+  back: 'bg-blue-600',        // pull compound — primary
+  biceps: 'bg-sky-500',       // pull isolation
+  forearms: 'bg-indigo-500',  // arm stabilisers
+  quadriceps: 'bg-violet-500',// lower push — primary
+  glutes: 'bg-purple-600',    // hip extension
+  hamstrings: 'bg-emerald-600',// posterior chain
+  calves: 'bg-teal-500',      // lower isolation
+  core: 'bg-lime-600',        // trunk stabilisation
 }
 
 export const muscleGroupLabels: Record<MuscleGroup, string> = {

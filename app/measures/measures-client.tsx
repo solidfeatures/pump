@@ -56,6 +56,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { PhotoSection } from '@/components/photo-section'
 
 interface MeasuresClientProps {
   initialHistory: BodyMetric[]
@@ -697,6 +698,9 @@ export function MeasuresClient({ initialHistory, latestMetrics: initialLatest }:
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Progress Photos */}
+      <PhotoSection />
     </div>
   )
 }
