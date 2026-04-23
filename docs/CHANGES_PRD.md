@@ -1301,6 +1301,31 @@ Use este checklist para rastrear o progresso. Marque cada item conforme concluí
 - [x] DB-004: `seed_exercises.sql` gerado e executado
 - [x] DB-005: `restore.sql` atualizado com todos os schemas novos
 
+### Migração de Dados CSV (MIG)
+- [ ] MIG-001: migrar treinos de `docs/treinos - Treinos.csv` → `workout_sessions` + `workout_sets`
+- [ ] MIG-001: mapear nomes de exercícios do CSV para UUIDs da tabela `exercises`
+- [ ] MIG-001: normalizar tipos de série ("Back-off Set" → "Back Off Set", "Warming Up" → "Warming Set")
+- [ ] MIG-001: criar sessões agrupadas por data, status `'completed'`
+
+### Segurança — UUIDs (SEC)
+- [ ] SEC-001: verificar todos os PKs expostos via API usam UUID (não SERIAL/integer)
+- [ ] SEC-001: migrar PKs integer remanescentes para UUID onde aplicável
+- [ ] SEC-001: atualizar referências de FK após migrações de PK
+
+### Visual Design — Cores Musculares (VIS)
+- [ ] VIS-001: sistema de cores semântico — push (vermelho/laranja/âmbar), pull (azul/índigo), lower push (roxo), lower pull (verde/teal), core (lima)
+- [ ] VIS-001: atualizar `muscleGroupColors` em `lib/mock-data.ts`
+- [ ] VIS-001: verificar consistência visual em todas as telas que exibem tags de grupos musculares
+
+### Fotos de Progresso (PHO)
+- [ ] PHO-001: tabela `progress_photos` (`id UUID`, `date DATE`, `storage_path TEXT`, `notes TEXT`, `created_at TIMESTAMPTZ`)
+- [ ] PHO-001: bucket Supabase Storage `progress-photos` (public read, authenticated write)
+- [ ] PHO-001: componente de upload de fotos na aba Medidas
+- [ ] PHO-001: grid/timeline de fotos na aba Histórico com comparação visual
+
+### Bug Fixes
+- [x] FIX-001: objetivo principal na aba Histórico não persistia — `updateAthleteProfile` agora salva `goal` no banco
+
 ---
 
 ## Apêndice: Referências de Código Existente
@@ -1319,3 +1344,200 @@ Use este checklist para rastrear o progresso. Marque cada item conforme concluí
 | Tabs | qualquer page.tsx |
 | Metodologia de treino | `docs/METHODOLOGY.md` |
 | Regras da IA | `SELECT * FROM v_ai_rules` |
+
+---
+
+## 11. Migração de Dados CSV (MIG)
+
+### MIG-001 — Importar histórico de treinos do CSV para o Supabase
+
+**Arquivo CSV:** `docs/treinos - Treinos.csv`
+
+**Colunas do CSV:**
+```
+ID Sessao, Data, Exercício, Tipo de Série, # Serie, Carga (kg), Repetições, RIR, RPE, Volume (Tonelagem), Observações
+```
+
+**Estratégia:**
+1. Agrupar linhas por `Data` → cada data única = uma `WorkoutSession`.
+2. Para cada sessão: `INSERT INTO workout_sessions (date, notes) VALUES ($date, null)`.
+3. Para cada linha: buscar `exercise_id` em `exercises` por `name = $exercício` (match case-insensitive).
+4. Normalizar `Tipo de Série`:
+   - `"Back-off Set"` → `"Back Off Set"`
+   - `"Warming Up"` → `"Warming Set"`
+   - demais: manter como está.
+5. `INSERT INTO workout_sets (session_id, exercise_id, set_number, set_type, load_kg, reps, rir, rpe, notes)`.
+
+**Datas no CSV:** 2026-04-07, 2026-04-10, 2026-04-11, 2026-04-13, 2026-04-15, 2026-04-16, 2026-04-18, 2026-04-20.
+
+**Implementação:** Server Action `migrateCSVAction()` ou script SQL avulso em `supabase/migrations/mig_001_csv_treinos.sql`.
+
+**Critério de aceite:**
+- [ ] 8 sessões criadas em `workout_sessions`.
+- [ ] Todos os sets do CSV criados em `workout_sets` com tipos normalizados.
+- [ ] Exercícios sem match no banco logados como warning (não interrompem a migração).
+- [ ] Script é idempotente (re-executar não duplica dados).
+
+---
+
+## 12. Segurança — UUIDs (SEC)
+
+### SEC-001 — Garantir que todos os PKs expostos usam UUID
+
+**Contexto:** O schema atual (após `prisma db pull`) já usa UUID (`gen_random_uuid()`) para todos os modelos principais. A PRD antiga referenciava `SERIAL PRIMARY KEY` em alguns specs — essas referências eram intenções futuras que o DB já implementou como UUID.
+
+**Verificações a executar:**
+1. Confirmar que nenhuma tabela relevante usa `SERIAL` / `BIGSERIAL` como PK.
+2. Se houver tabelas com PKs integer não mapeadas no Prisma (ex: tabelas legadas ou views), documentar e migrar.
+3. Garantir que `phase_id` em `nutrition_plans` usa `UUID` (já confirmado no schema).
+
+**Tabelas já confirmadas com UUID:**
+- `training_phases`, `exercises`, `exercise_muscles` (composite), `planned_sessions`, `planned_exercises`
+- `workout_sessions`, `workout_sets`, `body_metrics`, `nutrition_plans`
+- `athlete_profile`, `ai_coaching_rules`, `clinical_alerts`
+
+**Ação necessária:** Verificar via `SELECT * FROM information_schema.columns WHERE column_name = 'id' AND data_type NOT IN ('uuid')` no Supabase SQL Editor. Se houver integer IDs, gerar migração com `ALTER TABLE ... ALTER COLUMN id TYPE UUID USING gen_random_uuid()` (requer recriação de FKs).
+
+**Critério de aceite:**
+- [ ] Nenhum endpoint da API retorna IDs numéricos sequenciais (previsíveis).
+- [ ] Todas as tabelas acessadas pela app usam UUID como PK.
+
+---
+
+## 13. Cores de Grupos Musculares (VIS)
+
+### VIS-001 — Sistema de cores semântico por função muscular
+
+**Problema:** Cores atuais em `lib/mock-data.ts` usam variações do mesmo espectro (emerald/teal/cyan/sky), tornando difícil identificar grupos visualmente.
+
+**Novo sistema — baseado em função muscular:**
+
+| Grupo | Músculo | Cor Tailwind | Lógica |
+|-------|---------|-------------|--------|
+| Push horizontal | chest | `bg-rose-500` | Vermelho = push primário |
+| Push extensão | triceps | `bg-orange-500` | Laranja = push assistência |
+| Push overhead | shoulders | `bg-amber-500` | Âmbar = push vertical |
+| Pull composto | back | `bg-blue-600` | Azul = pull primário |
+| Pull isolado | biceps | `bg-sky-500` | Azul claro = pull isolado |
+| Pull antebraço | forearms | `bg-indigo-500` | Índigo = estabilizadores |
+| Lower push | quadriceps | `bg-violet-500` | Roxo = lower push |
+| Lower hip hinge | glutes | `bg-purple-600` | Roxo escuro = extensão quadril |
+| Lower pull | hamstrings | `bg-emerald-600` | Verde = posterior |
+| Lower isolado | calves | `bg-teal-500` | Teal = panturrilha |
+| Core | core | `bg-lime-600` | Lima = estabilização |
+
+**Princípio visual:**
+- Olhar para vermelho/laranja/âmbar → músculos de empurrão
+- Olhar para azul/índigo → músculos de puxada
+- Olhar para roxo/violeta → parte inferior anterior
+- Olhar para verde/teal → parte inferior posterior
+- Lima → core
+
+**Implementação:**
+- Atualizar `muscleGroupColors` em `lib/mock-data.ts`.
+- Verificar uso em: `app/history/page.tsx`, `components/mini-calendar.tsx`, `components/workout-calendar.tsx`, `app/plan/page.tsx`.
+
+**Critério de aceite:**
+- [ ] Nenhum grupo tem a mesma cor de outro grupo funcionalmente distinto.
+- [ ] Grupos do mesmo espectro (ex: chest/triceps/shoulders) são visivelmente relacionados mas distintos.
+- [ ] Tags de grupos musculares no Histórico usam as novas cores.
+
+---
+
+## 14. Fotos de Progresso (PHO)
+
+### PHO-001 — Registro de fotos de progresso corporal
+
+**Objetivo:** O atleta pode registrar fotos de progresso periodicamente e visualizá-las em uma timeline interativa no Histórico.
+
+#### Banco de Dados
+
+```sql
+-- supabase/migrations/mig_002_progress_photos.sql
+CREATE TABLE IF NOT EXISTS progress_photos (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date         DATE NOT NULL,
+  storage_path TEXT NOT NULL,
+  angle        TEXT DEFAULT 'Frente',  -- Frente | Costas | Lateral | Outro
+  notes        TEXT,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Bucket Storage: 'progress-photos' (configurar no painel Supabase)
+-- Policy: public read, sem autenticação por enquanto (app single-user)
+```
+
+**Prisma Schema (adicionar ao `prisma/schema.prisma`):**
+```prisma
+model ProgressPhoto {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date         DateTime @db.Date
+  storage_path String
+  angle        String   @default("Frente")
+  notes        String?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("progress_photos")
+}
+```
+
+#### Upload na aba Medidas
+
+**Arquivo:** `app/measures/measures-client.tsx`
+
+**UI:** Seção "Fotos de Progresso" no final da página:
+```
+┌─────────────────────────────────────────────┐
+│  📸 Fotos de Progresso          [+ Adicionar]│
+├────────┬────────┬────────┬──────────────────┤
+│ Frente │ Costas │ Lateral│ Mais recentes... │
+└────────┴────────┴────────┴──────────────────┘
+```
+
+**Componente de upload:**
+- Input `type="file"` accept="image/*" (captura câmera em mobile).
+- Preview da imagem antes de enviar.
+- Select de ângulo: Frente, Costas, Lateral, Outro.
+- Campo de data (default = hoje).
+- Campo de notas (opcional).
+- Upload para Supabase Storage via `supabase.storage.from('progress-photos').upload(path, file)`.
+- Salvar registro em `progress_photos` via Server Action.
+
+**Server Actions** (`app/measures/actions.ts`):
+```ts
+uploadProgressPhotoAction(formData: FormData): Promise<ProgressPhoto>
+getProgressPhotosAction(limit?: number): Promise<ProgressPhoto[]>
+deleteProgressPhotoAction(id: string): Promise<void>
+```
+
+#### Timeline no Histórico
+
+**Arquivo:** `app/history/page.tsx`
+
+**UI:** Nova seção "Linha do Tempo de Progresso" no topo da página (acima do card Perfil do Atleta):
+
+```
+┌─────────────────────────────────────────────────┐
+│  Linha do Tempo de Progresso                     │
+│  ◄ ──────────────────────────────────── ►       │
+│  [Apr 7] [Apr 13] [Apr 20] [Hoje]               │
+│  ┌──────┬──────┬──────┐                         │
+│  │Frente│Costas│Lateral│                        │
+│  │ foto │ foto │ foto │                          │
+│  └──────┴──────┴──────┘                         │
+│  Data: 20 de Abr · Nota: Após 2 semanas          │
+└─────────────────────────────────────────────────┘
+```
+
+**Comportamento:**
+- Scroll horizontal de checkpoints de data.
+- Ao selecionar uma data: exibe todas as fotos daquela sessão agrupadas por ângulo.
+- Clicar em uma foto: abre lightbox (Dialog) com a foto em tamanho grande.
+- Modo comparação: selecionar dois checkpoints → exibe fotos lado a lado (grid 2 colunas, mesmos ângulos emparelhados).
+
+**Critério de aceite:**
+- [ ] Upload de foto salva no Storage e registra na tabela `progress_photos`.
+- [ ] Fotos aparecem na timeline do Histórico agrupadas por data.
+- [ ] Lightbox abre foto em tamanho grande ao clicar.
+- [ ] Modo comparação lado a lado funcional para duas datas selecionadas.
+- [ ] Deletar foto remove do Storage e do banco.
