@@ -1,0 +1,211 @@
+ID Exercício,Nome do Exercício,Grupo,Padrão de Movimento,Músculo,Fator (Série),Exigência Neural,Classificação
+1,Bench Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+1,Bench Press,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,4,Composto
+1,Bench Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+2,Incline Bench Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+2,Incline Bench Press,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,4,Composto
+2,Incline Bench Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+3,Decline Bench Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+3,Decline Bench Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+4,Dips,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+4,Dips,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,4,Composto
+4,Dips,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+5,Push-up,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+5,Push-up,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,4,Composto
+5,Push-up,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+6,Overhead Press,Ombros,Empurrão Vertical,Deltoide Anterior,1,4,Composto
+6,Overhead Press,Ombros,Empurrão Vertical,Deltoide Lateral,1,4,Composto
+6,Overhead Press,Braços,Empurrão Vertical,Tríceps Braquial,0.5,4,Composto
+7,Barbell Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+7,Barbell Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+7,Barbell Row,Costas,Puxão Horizontal,Trapézio Médio,1,4,Composto
+7,Barbell Row,Ombros,Puxão Horizontal,Deltoide Posterior,0.5,4,Composto
+7,Barbell Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+8,Seated Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+8,Seated Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+8,Seated Row,Ombros,Puxão Horizontal,Deltoide Posterior,0.5,4,Composto
+8,Seated Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+9,T-Bar Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+9,T-Bar Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+9,T-Bar Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+10,One-arm Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+10,One-arm Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+10,One-arm Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+11,Pull-up,Costas,Puxão Vertical,Grande Dorsal,1,4,Composto
+11,Pull-up,Braços,Puxão Vertical,Bíceps Braquial,0.5,4,Composto
+11,Pull-up,Ombros,Puxão Vertical,Deltoide Posterior,0.5,4,Composto
+12,Lat Pulldown,Costas,Puxão Vertical,Grande Dorsal,1,4,Composto
+12,Lat Pulldown,Braços,Puxão Vertical,Bíceps Braquial,0.5,4,Composto
+13,Back Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Composto
+13,Back Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,4,Composto
+13,Back Squat,Costas / Core,Dominante de Joelho,Eretores da Espinha,0.5,4,Composto
+14,Bulgarian Split Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Composto
+14,Bulgarian Split Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,4,Composto
+15,Leg Press,Membros Inferiores,Dominante de Joelho,Quadríceps,1,3,Composto
+15,Leg Press,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,3,Composto
+16,Leg Extension,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Isolador
+17,Lying Leg Curl,Membros Inferiores,Dominante de Joelho,Isquiotibiais,1,4,Isolador
+18,Seated Leg Curl,Membros Inferiores,Dominante de Joelho,Isquiotibiais,1,4,Isolador
+19,Deadlift,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+19,Deadlift,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+19,Deadlift,Costas / Core,Dominante de Quadril,Eretores da Espinha,1,4,Composto
+19,Deadlift,Costas,Dominante de Quadril,Trapézio Superior,0.5,4,Composto
+20,Romanian Deadlift,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+20,Romanian Deadlift,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+21,Stiff Leg Deadlift,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+21,Stiff Leg Deadlift,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+22,Hip Thrust,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+22,Hip Thrust,Membros Inferiores,Dominante de Quadril,Isquiotibiais,0.5,4,Composto
+23,Dumbbell Fly,Peitoral,Crucifixos,Peitoral Maior,1,2,Isolador
+23,Dumbbell Fly,Ombros,Crucifixos,Deltoide Anterior,0.5,2,Isolador
+24,Pec Deck,Peitoral,Crucifixos,Peitoral Maior,1,2,Isolador
+25,Pec Fly,Peitoral,Crucifixos,Peitoral Maior,1,2,Isolador
+26,Reverse Fly,Ombros,Crucifixos,Deltoide Posterior,1,2,Isolador
+26,Reverse Fly,Costas,Crucifixos,Rombóides,1,2,Isolador
+26,Reverse Fly,Costas,Crucifixos,Trapézio Médio,0.5,2,Isolador
+27,Lateral Raise,Ombros,Outros Isoladores,Deltoide Lateral,1,2,Isolador
+28,Front Raise,Ombros,Outros Isoladores,Deltoide Anterior,1,2,Isolador
+29,Pullover,Costas,Outros Isoladores,Grande Dorsal,1,2,Isolador
+29,Pullover,Peitoral,Outros Isoladores,Peitoral Maior,1,2,Isolador
+30,Barbell Curl,Braços,Outros Isoladores,Bíceps Braquial,1,2,Isolador
+31,Triceps Pushdown,Braços,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+32,Standing Calf Raise,Membros Inferiores,Outros Isoladores,Gastrocnêmio,1,2,Isolador
+32,Standing Calf Raise,Membros Inferiores,Outros Isoladores,Sóleo,1,2,Isolador
+33,Adductor Machine,Membros Inferiores,Outros Isoladores,Adutores,1,2,Isolador
+34,Abductor Machine,Membros Inferiores,Outros Isoladores,Glúteo Médio/Mínimo,1,2,Isolador
+35,Face Pull,Ombros,Outros Isoladores,Deltoide Posterior,1,2,Isolador
+35,Face Pull,Costas,Outros Isoladores,Trapézio Médio,1,2,Isolador
+36,Crunch,Core,Core,Abdômen,1,1,Isolador
+37,Plank,Core,Core,Abdômen,1,1,Isolador
+38,Leg Raise,Core,Core,Abdômen,1,1,Isolador
+39,Machine Crunch,Core,Core,Abdômen,1,1,Isolador
+40,Pallof Press,Core,Core,Abdômen,1,1,Isolador
+41,Smith Machine Bench Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,3,Composto
+41,Smith Machine Bench Press,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,3,Composto
+41,Smith Machine Bench Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,3,Composto
+42,Incline Dumbbell Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+42,Incline Dumbbell Press,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,4,Composto
+42,Incline Dumbbell Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+43,Machine Chest Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,3,Composto
+43,Machine Chest Press,Ombros,Empurrão Horizontal,Deltoide Anterior,0.5,3,Composto
+43,Machine Chest Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,3,Composto
+44,Smith Overhead Press,Ombros,Empurrão Vertical,Deltoide Anterior,1,3,Composto
+44,Smith Overhead Press,Ombros,Empurrão Vertical,Deltoide Lateral,1,3,Composto
+44,Smith Overhead Press,Braços,Empurrão Vertical,Tríceps Braquial,0.5,3,Composto
+45,Machine Shoulder Press,Ombros,Empurrão Vertical,Deltoide Anterior,1,4,Composto
+45,Machine Shoulder Press,Ombros,Empurrão Vertical,Deltoide Lateral,1,4,Composto
+45,Machine Shoulder Press,Braços,Empurrão Vertical,Tríceps Braquial,0.5,4,Composto
+46,Cable Lateral Raise,Ombros,Outros Isoladores,Deltoide Lateral,1,2,Isolador
+47,Rear Delt Raise,Ombros,Outros Isoladores,Deltoide Posterior,1,2,Isolador
+48,Upright Row,Ombros,Puxão Vertical,Deltoide Lateral,1,4,Composto
+48,Upright Row,Costas,Puxão Vertical,Trapézio Superior,1,4,Composto
+48,Upright Row,Braços,Puxão Vertical,Bíceps Braquial,0.5,4,Composto
+49,Dumbbell Shrug,Costas,Outros Isoladores,Trapézio Superior,1,2,Isolador
+50,Barbell Shrug,Costas,Outros Isoladores,Trapézio Superior,1,2,Isolador
+51,Inverted Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+51,Inverted Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+51,Inverted Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+52,Single Arm Cable Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+52,Single Arm Cable Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+52,Single Arm Cable Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+53,Hack Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,3,Composto
+53,Hack Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,3,Composto
+54,Smith Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,3,Composto
+54,Smith Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,3,Composto
+55,Step Up,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Composto
+55,Step Up,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,4,Composto
+56,Sissy Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Isolador
+57,Glute Bridge,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+57,Glute Bridge,Membros Inferiores,Dominante de Quadril,Isquiotibiais,0.5,4,Composto
+58,Cable Kickback,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,2,Isolador
+59,Cable Pull Through,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+59,Cable Pull Through,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+60,Barbell Good Morning,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+60,Barbell Good Morning,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+60,Barbell Good Morning,Costas / Core,Dominante de Quadril,Eretores da Espinha,1,4,Composto
+61,Concentration Curl,Braços,Outros Isoladores,Bíceps Braquial,1,2,Isolador
+62,Cable Curl,Braços,Outros Isoladores,Bíceps Braquial,1,2,Isolador
+63,Reverse Curl,Braços,Outros Isoladores,Braquial,1,2,Isolador
+64,Triceps Kickback,Braços,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+65,Machine Triceps Extension,Braços,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+66,Bar Pushdown,Braços,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+67,Leg Press Calf Raise,Membros Inferiores,Outros Isoladores,Gastrocnêmio,1,2,Isolador
+67,Leg Press Calf Raise,Membros Inferiores,Outros Isoladores,Sóleo,1,2,Isolador
+68,Tibialis Raise,Membros Inferiores,Outros Isoladores,Tibial Anterior,1,1,Isolador
+69,Ab Wheel Rollout,Core,Core,Abdômen,1,1,Isolador
+70,Hanging Leg Raise,Core,Core,Abdômen,1,1,Isolador
+71,Side Plank,Core,Core,Abdômen,1,1,Isolador
+72,Cable Woodchopper,Core,Core,Abdômen,1,1,Isolador
+73,Decline Dumbbell Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+73,Decline Dumbbell Press,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+74,Machine Fly,Peitoral,Crucifixos,Peitoral Maior,1,2,Isolador
+74,Machine Fly,Ombros,Crucifixos,Deltoide Anterior,0.5,2,Isolador
+75,High Cable Fly,Peitoral,Crucifixos,Peitoral Maior,1,2,Isolador
+76,Low Cable Fly,Peitoral,Crucifixos,Peitoral Maior,1,2,Isolador
+77,Incline Push-up,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+77,Incline Push-up,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+78,Decline Push-up,Ombros,Empurrão Horizontal,Deltoide Anterior,1,4,Composto
+78,Decline Push-up,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+79,Assisted Dip Machine,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+79,Assisted Dip Machine,Braços,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+80,Landmine Press,Ombros,Empurrão Vertical,Deltoide Anterior,1,4,Composto
+80,Landmine Press,Ombros,Empurrão Vertical,Deltoide Lateral,1,4,Composto
+81,Landmine Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+81,Landmine Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+82,Chest Supported Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+82,Chest Supported Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+83,Hammer Row,Costas,Puxão Horizontal,Grande Dorsal,1,3,Composto
+83,Hammer Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,3,Composto
+84,Single Arm Lat Pulldown,Costas,Puxão Vertical,Grande Dorsal,1,4,Composto
+85,V-Bar Pulldown,Costas,Puxão Vertical,Grande Dorsal,1,3,Composto
+85,V-Bar Pulldown,Braços,Puxão Vertical,Bíceps Braquial,0.5,3,Composto
+86,Goblet Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Composto
+86,Goblet Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,4,Composto
+87,Zercher Squat,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Composto
+87,Zercher Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,4,Composto
+88,Single Leg Extension,Membros Inferiores,Dominante de Joelho,Quadríceps,1,4,Isolador
+89,Single Leg Curl,Membros Inferiores,Dominante de Joelho,Isquiotibiais,1,4,Isolador
+90,Nordic Ham Curl,Membros Inferiores,Dominante de Joelho,Isquiotibiais,1,4,Isolador
+91,Sumo Squat,Membros Inferiores,Dominante de Joelho,Glúteo Máximo,1,4,Composto
+91,Sumo Squat,Membros Inferiores,Dominante de Joelho,Adutores,1,4,Composto
+92,Sumo Deadlift,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+92,Sumo Deadlift,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+93,Single Leg RDL,Membros Inferiores,Dominante de Quadril,Isquiotibiais,1,4,Composto
+93,Single Leg RDL,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+94,Single Leg Hip Thrust,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,4,Composto
+95,Machine Kickback,Membros Inferiores,Dominante de Quadril,Glúteo Máximo,1,2,Isolador
+96,Cable Hip Abduction,Membros Inferiores,Outros Isoladores,Glúteo Médio/Mínimo,1,2,Isolador
+97,Single Leg Adduction,Membros Inferiores,Outros Isoladores,Adutores,1,2,Isolador
+98,Spider Curl,Braços,Outros Isoladores,Bíceps Braquial,1,2,Isolador
+99,Preacher Curl Machine,Braços,Outros Isoladores,Bíceps Braquial,1,2,Isolador
+100,High Cable Curl,Braços,Outros Isoladores,Bíceps Braquial,1,2,Isolador
+101,Overhead Cable Extension,Braços,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+102,Single Arm Pushdown,Braços,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+103,Incline Lateral Raise,Ombros,Outros Isoladores,Deltoide Lateral,1,2,Isolador
+104,Cross-body Lateral Raise,Ombros,Outros Isoladores,Deltoide Lateral,1,2,Isolador
+105,Reverse Pec Deck,Ombros,Crucifixos,Deltoide Posterior,1,2,Isolador
+105,Reverse Pec Deck,Costas,Crucifixos,Rombóides,1,2,Isolador
+106,Farmer Walk,Costas,Outros Isoladores,Trapézio Superior,1,2,Isolador
+106,Farmer Walk,Core,Outros Isoladores,Core,1,2,Isolador
+107,Suitcase Carry,Core,Outros Isoladores,Core,1,2,Isolador
+108,Dragon Flag,Core,Core,Abdômen,1,1,Isolador
+109,Ab Wheel Kneeling,Core,Core,Abdômen,1,1,Isolador
+110,Toe Raise,Membros Inferiores,Outros Isoladores,Tibial Anterior,1,1,Isolador
+111,Dumbbell Floor Press,Peitoral,Empurrão Horizontal,Peitoral Maior,1,4,Composto
+111,Dumbbell Floor Press,Peitoral,Empurrão Horizontal,Tríceps Braquial,0.5,4,Composto
+111,Dumbbell Floor Press,Peitoral,Empurrão Horizontal,Deltoide Anterior,0.5,4,Composto
+112,Hammer Curl,Bíceps,Isolador,Braquiorradial,1,2,Isolador
+112,Hammer Curl,Bíceps,Isolador,Braquial,0.5,2,Isolador
+112,Hammer Curl,Bíceps,Isolador,Bíceps Braquial,0.5,2,Isolador
+113,Seated Calf Raise,Membros Inferiores,Outros Isoladores,Sóleo,1,2,Isolador
+113,Seated Calf Raise,Membros Inferiores,Outros Isoladores,Gastrocnêmio,0.5,2,Isolador
+114,Neutral Grip Machine Row,Costas,Puxão Horizontal,Grande Dorsal,1,4,Composto
+114,Neutral Grip Machine Row,Costas,Puxão Horizontal,Rombóides,1,4,Composto
+114,Neutral Grip Machine Row,Ombros,Puxão Horizontal,Deltoide Posterior,0.5,4,Composto
+114,Neutral Grip Machine Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,4,Composto
+115,V-Bar Seated Row,Costas,Puxão Horizontal,Grande Dorsal,1,3,Composto
+115,V-Bar Seated Row,Costas,Puxão Horizontal,Rombóides,1,3,Composto
+115,V-Bar Seated Row,Ombros,Puxão Horizontal,Deltoide Posterior,0.5,3,Composto
+115,V-Bar Seated Row,Braços,Puxão Horizontal,Bíceps Braquial,0.5,3,Composto
+116,French Press,Tríceps Francês;French Press;Triceps Frances,Outros Isoladores,Tríceps Braquial,1,2,Isolador
+117,Rear Delt Fly,Ombros,Crucifixos,Deltoide Posterior,1,2,Isolador

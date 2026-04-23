@@ -1,0 +1,22 @@
+# Antigravity Fitness — AI Rules & Database Safety
+
+## 🛑 DATABASE GOVERNANCE (CRITICAL)
+
+- **NEVER** run `npx prisma db push` or `pnpm db:push`. This command is destructive to views, triggers, and the `SERIAL` identity system.
+- **ALWAYS** use `npx prisma migrate dev --create-only` for any schema changes.
+- **ALWAYS** ask for explicit user permission before running any command that modifies the database schema or data (except for migrations previously approved).
+- **PROTECTION**: The database uses an Event Trigger to block `DROP` commands on core tables and views. Do not attempt to bypass this without user approval.
+
+## 🧠 METHODOLOGY CONTEXT
+
+- Follow **Jayme de Lamadrid's block periodization** strictly.
+- Consult `v_ai_rules`, `v_ai_context`, and `v_exercise_progress` before any workout prescription.
+- Business logic resides in `lib/periodization.ts`.
+- Documentation is in `docs/METHODOLOGY.md`.
+
+## 🛠️ TECH STACK
+
+- Next.js 16 (App Router)
+- Prisma 7 (using `DIRECT_URL` in `prisma.config.ts`)
+- Supabase (PostgreSQL)
+- Tailwind CSS 4 + Framer Motion

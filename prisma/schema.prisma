@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model TrainingPhase {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  etapa                Int              @default(1)
+  phase_type           String?
+  meso_number          Int?
+  technique_focus      String?
+  phase_order          Int
+  duration_weeks       Int
+  target_rir_min       Int?
+  target_rir_max       Int?
+  volume_pct_tension   Decimal?         @db.Decimal(4, 2)
+  volume_pct_metabolic Decimal?         @db.Decimal(4, 2)
+  progression_rule     String?
+  is_current           Boolean          @default(false)
+  created_at           DateTime         @default(now()) @db.Timestamptz(6)
+  sessions             PlannedSession[]
+
+  @@map("training_phases")
+}
+
+model Exercise {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String            @unique
+  name_en          String?           @unique
+  video_url        String?
+  movement_pattern String?
+  classification   String?
+  neural_demand    Int?
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  muscles          ExerciseMuscle[]
+  plannedExercises PlannedExercise[]
+  workoutSets      WorkoutSet[]
+
+  @@map("exercises")
+}
+
+model ExerciseMuscle {
+  exercise_id   String   @db.Uuid
+  muscle_group  String
+  muscle        String
+  series_factor Decimal  @db.Decimal(3, 2)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  exercise      Exercise @relation(fields: [exercise_id], references: [id], onDelete: Cascade)
+
+  @@id([exercise_id, muscle])
+  @@map("exercise_muscles")
+}
+
+model AthleteProfile {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String   @default("Atleta")
+  experience_level String   @default("Intermediário")
+  injuries         String[]
+  training_days    Int      @default(4)
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("athlete_profile")
+}
+
+model PlannedSession {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phase_id          String?           @db.Uuid
+  name              String?
+  week_number       Int
+  meso_week         Int
+  session_number    Int
+  day_of_week       Int?
+  planned_date      DateTime?         @db.Date
+  status            String            @default("Pendente")
+  actual_session_id Int?
+  ai_notes          String?
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  exercises         PlannedExercise[]
+  phase             TrainingPhase?    @relation(fields: [phase_id], references: [id], onDelete: SetNull)
+
+  @@map("planned_sessions")
+}
+
+model PlannedExercise {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  planned_session_id String         @db.Uuid
+  exercise_id        String         @db.Uuid
+  sets_count         Int
+  reps_min           Int?
+  reps_max           Int?
+  suggested_load_kg  Decimal?       @db.Decimal(6, 2)
+  target_rpe         Decimal?       @db.Decimal(3, 1)
+  target_rir         Int?
+  technique          String?
+  ai_feedback        String?
+  sort_order         Int            @default(0)
+  created_at         DateTime       @default(now()) @db.Timestamptz(6)
+  exercise           Exercise       @relation(fields: [exercise_id], references: [id])
+  session            PlannedSession @relation(fields: [planned_session_id], references: [id], onDelete: Cascade)
+
+  @@map("planned_exercises")
+}
+
+model WorkoutSession {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date       DateTime     @db.Date
+  notes      String?
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  sets       WorkoutSet[]
+
+  @@map("workout_sessions")
+}
+
+model WorkoutSet {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id    String         @db.Uuid
+  exercise_id   String         @db.Uuid
+  set_number    Int
+  set_type      String         @default("Working Set")
+  set_technique String         @default("Normal")
+  load_kg       Decimal?       @db.Decimal(6, 2)
+  reps          Int
+  rpe           Decimal?       @db.Decimal(3, 1)
+  rir           Int?
+  notes         String?
+  tonnage       Decimal?       @db.Decimal(8, 2) @ignore // Generated in DB
+  one_rm_epley  Decimal?       @db.Decimal(7, 2) @ignore // Generated in DB
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  exercise      Exercise       @relation(fields: [exercise_id], references: [id])
+  session       WorkoutSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@unique([session_id, exercise_id, set_number])
+  @@map("workout_sets")
+}
+
+model BodyMetric {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date         DateTime @unique @db.Date
+  weight_kg    Decimal? @db.Decimal(5, 2)
+  height_cm    Decimal? @db.Decimal(5, 1)
+  bf_pct       Decimal? @db.Decimal(4, 1)
+  sleep_hours  Decimal? @db.Decimal(3, 1)
+  waist_cm     Decimal? @db.Decimal(5, 1)
+  chest_cm     Decimal? @db.Decimal(5, 1)
+  arms_cm      Decimal? @db.Decimal(5, 1)
+  forearms_cm  Decimal? @db.Decimal(5, 1)
+  thighs_cm    Decimal? @db.Decimal(5, 1)
+  calves_cm    Decimal? @db.Decimal(5, 1)
+  wrist_cm     Decimal? @db.Decimal(5, 1)
+  ankle_cm     Decimal? @db.Decimal(5, 1)
+  pain_notes   String?
+  energy_level Int?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("body_metrics")
+}
+
+model NutritionPlan {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  athlete_id      String?  @db.Uuid
+  date            DateTime @unique @default(dbgenerated("CURRENT_DATE")) @db.Date
+  goal            String
+  calories_target Int
+  protein_g       Int
+  carbs_g         Int
+  fats_g          Int
+  meals           Json?
+  ai_logic        String?
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("nutrition_plans")
+}
+
+model ClinicalAlert {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date           DateTime @db.Date
+  type           String?
+  body_region    String?
+  status_summary String?
+  recommendation String?
+  alert_flag     String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("clinical_alerts")
+}
+
+model AiCoachingRule {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category   String
+  title      String
+  rule       String
+  source     String?  @default("Jayme de Lamadrid — Musculação para Naturais")
+  priority   Int?     @default(5)
+  tags       String[]
+  is_active  Boolean? @default(true)
+  notes      String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("ai_coaching_rules")
+}

@@ -1,0 +1,280 @@
+Planejamento Ideal de Periodizacao:
+
+Excelente! Para deixar a nossa IA local bem afiada e capaz de gerar planejamentos completos de periodização, precisamos estruturar o macrociclo exatamente como o Jayme de Lamadrid sugere. O modelo ideal utiliza a periodização por blocos como base principal, mas com "recheios" de periodização ondulatória e linear para otimizar os estímulos de hipertrofia ao longo do tempo.
+
+Para um atleta natural focado em hipertrofia, o autor divide o planejamento anual (macrociclo) em duas grandes etapas estratégicas: a primeira construindo uma base de capacidade técnica e força, e a segunda focada massivamente no acúmulo de volume e estresse metabólico.
+
+Podemos programar os "nós" do nosso workflow com a seguinte estrutura de fases e mesociclos:
+
+### ETAPA 1: Força e Potência (Preparando o terreno)
+Esta etapa serve para que você se torne mais forte e capaz de tolerar volumes maiores de treino futuramente.
+
+*   **Fase de Acumulação (2 Mesociclos):** O foco inicial é melhorar a capacidade de trabalho e a técnica. Utiliza-se a periodização linear inversa, aumentando gradativamente o número de séries. O esforço é moderado (RIR 2) e a distribuição dos exercícios fica em 40% focados em tensão mecânica (multiarticulares) e 60% em estresse metabólico (isoladores/máquinas).
+*   **Transição (1 Mesociclo):** Sem diminuir o volume, o foco passa a ser exercícios de força, alterando a proporção para 60% de tensão mecânica e 40% de estresse metabólico. Aqui, você tenta progredir em variáveis como tempo de descanso ou pausas isométricas.
+*   **Fase de Intensificação (1 a 2 Mesociclos):** O volume de treino cai e a intensidade da carga aumenta significativamente, chegando a RIR 1. A tensão mecânica domina o treino (70%), focando em exercícios compostos livres ou "pesados". 
+*   **Teste (1 Semana):** A etapa de força termina obrigatoriamente testando os seus novos limites de carga, fazendo provas de 1RM (uma repetição máxima) ou AMRAP nos exercícios principais.
+
+### ETAPA 2: Hipertrofia e Resistência (A construção real)
+Com o novo teto de força estabelecido, a IA deve focar no aumento do volume. Esta etapa é mais longa e utiliza a periodização ondulante misturada com linear inversa.
+
+*   **Fase de Hipertrofia e Resistência (4 Mesociclos):** Volta-se a trabalhar com um volume maior de forma gradativa, aumentando a intensidade do esforço e chegando bem perto da falha na maior parte do tempo (RIR 0 a 1). A relação volta a 40% tensão e 60% metabólico. Cada mesociclo tem uma regra clara de progressão de carga:
+    *   **Meso 1:** Você trabalhará com 80% do seu RM, para ter margem para aumentar volume. A progressão muda por microciclo/semana: $8\times2$ na semana um, $6\times3$ na semana dois, $5\times4$ na semana três e $4\times5$ na semana quatro.
+    *   **Meso 2:** A progressão deve focar estritamente em aumentar as repetições nas *Working Sets* (ex: se fez 8 reps na primeira semana, tenta 9 na segunda, 10 na terceira).
+    *   **Meso 3:** Momento de introduzir a técnica de intensidade **Drop Set**. O objetivo principal continua sendo acumular mais volume de treino a cada microciclo.
+    *   **Meso 4:** O foco transita para a periodização ondulante diária (alternando focos de intensidade da carga na mesma sessão) e introduz-se o uso de **Super Sets**.
+*   **Fase de Hipertrofia (2 Mesociclos):** É aqui que alcançamos o pico do planejamento. A distribuição fica em 30% tensão mecânica e massivos 70% de estresse metabólico, trabalhando com muitas repetições e o maior foco de "pump" de todo o macrociclo.
+    *   **Meso 1:** Uso de altos volumes e da técnica de **Falsa Pirâmide**. A intensidade do esforço é brutal.
+    *   **Meso 2:** O ápice do volume de treino, encostando no seu Máximo Volume Recuperável (MRV) com RPE 10. A estratégia recomendada aqui é adicionar **+1 dia de Frequência** na semana (ex: adicionar um dia extra de "Full Body") para encaixar mais volume e forçar os músculos atrasados. 
+
+Depois disso, o autor sugere que a fase culmina em uma competição (Peak/Show), uma viagem ou sessão de fotos, colhendo os resultados físicos de toda a periodização.
+
+Inserindo esses blocos e regras no *backend* da nossa IA, ela saberá exatamente qual ferramenta e tipo de progressão te indicar mês a mês, sem te deixar cair na armadilha da estagnação. O que acha de mapearmos essas variáveis em um formato JSON para o n8n?
+
+
+Para que o nosso workflow no n8n seja autônomo e inteligente na transição de fases, precisamos programar "gatilhos" (triggers) baseados estritamente na relação entre as variáveis de volume, intensidade e recuperação que constam nos dados da planilha.
+
+Baseado na metodologia do Jayme de Lamadrid, os gatilhos lógicos e numéricos que a nossa IA deve observar nos dados de treino para sugerir a mudança de uma fase (ou bloco) para outra são:
+
+**1. Gatilho de Teto de Volume (Alcance do MRV - Máximo Volume Recuperável)**
+*   **O que os dados mostram:** A variável de volume (ex: 'Vol. Total Musculo') se aproxima ou ultrapassa o teto de 20 séries semanais por grupo muscular e, simultaneamente, a 'Tendência' mostra estagnação ("-") ou queda ("↓") na capacidade de carga ou repetições totais. Outro indicador associado é o 'Status MRV' apontando fadiga ou má recuperação entre as sessões.
+*   **Ação da IA:** Isso indica que a atual *Fase de Acumulação* (ou os blocos de alto volume) atingiu o seu limite e o corpo não consegue mais supercompensar. O gatilho deve forçar a indicação de um Deload (redução de 50% do volume) e, no planejamento, engatilhar a transição para a *Fase de Intensificação*. Nela, a IA mudará o direcionamento: o volume cairá e o foco passará a ser a progressão na intensidade da carga.
+
+**2. Gatilho de Estagnação Crônica (Platô Neural/Força)**
+*   **O que os dados mostram:** 2 semanas (microciclos) consecutivas de estagnação ("-") ou queda ("↓") no desempenho, mesmo quando os dados de recuperação (sono, calorias) estão bons e o volume de treino está moderado ou baixo (abaixo de 15 séries, ou seja, não é por excesso de volume).
+*   **Ação da IA:** Se esse padrão ocorrer durante a *Fase de Intensificação* (onde o foco era subir a carga pesada), significa que o sistema nervoso atingiu o pico de adaptação para aquele ciclo. A IA deve engatilhar imediatamente a **Semana de Teste (Realização)**. O output deve prescrever testes de 1RM (Uma Repetição Máxima) ou AMRAP (máximo de repetições) nos exercícios principais. Após o registro das novas marcas, a IA transita o macrociclo para a Etapa 2: *Fase de Hipertrofia e Resistência*.
+
+**3. Gatilho Temporal (Duração Estratégica do Mesociclo)**
+*   **O que os dados mostram:** A contagem de semanas (microciclos) dentro do mesmo bloco atinge o tempo limite sugerido pelo autor. 
+*   **Ação da IA:** A periodização por blocos funciona com prazos estipulados para evitar que o corpo se acostume demais com o mesmo tipo de estímulo. A IA pode usar contadores temporais como gatilhos rígidos:
+    *   Após 2 mesociclos (aprox. 8 semanas) subindo volume em *Acumulação*, engatilhar a *Fase de Transição*.
+    *   Após 1 mesociclo (aprox. 4 semanas) de *Transição*, engatilhar a *Intensificação*.
+    *   Dentro dos 4 mesociclos da fase de *Hipertrofia e Resistência*, a IA usa o tempo para mudar as regras de progressão: no Meso 3 (semana 9 a 12 da fase), o gatilho insere a recomendação da técnica *Drop Set*; no Meso 4 (semana 13 a 16), altera para *Super Set*.
+
+**4. Gatilho de Fadiga Máxima e Estresse Metabólico (Reta Final)**
+*   **O que os dados mostram:** Na fase final do macrociclo (*Fase de Hipertrofia* Pico), os dados vão acusar o uso de técnicas avançadas (como Falsa Pirâmide), volumes no limite do MRV e intensidade de esforço (RPE) batendo 9 ou 10 consistentemente.
+*   **Ação da IA:** A IA identifica que o atleta está no limite absoluto. O gatilho entra em ação no segundo (e último) mesociclo desta fase: a IA deve sugerir adicionar **+1 dia de frequência na semana** (ex: um treino Full Body extra, ou pernas e braços) apenas para comportar esse pico massivo de volume final. Após esse bloco, a IA decreta o fim do planejamento, engatilhando a fase de "Peak" (competição, viagem ou sessão de fotos).
+
+Em suma, para estruturar isso no n8n, a lógica de programação seria cruzar a variável `Semanas_na_Fase_Atual` + `Vol._Total_Musculo` + `Tendencia` + `Status_Fadiga/MRV`. Se o volume bate no teto e a tendência cai, a IA aciona a mudança do tipo de variável alvo (de aumentar volume para aumentar carga, mudando a fase); se o tempo da fase expira, ela avança o bloco.
+
+O que acha de adicionarmos um novo campo no JSON de entrada, como `"Fase_Atual_Periodizacao"`, e uma saída onde a própria IA do n8n possa atualizar o status "Manter Fase" ou "Avançar Fase" com base nessas regras?
+
+
+Excelente ponto para o nosso projeto! Ajustar os tempos de descanso e a distribuição dos dias de treino no nosso workflow é vital, pois, para o atleta natural, a recuperação é o que de fato garante a supercompensação e os resultados. 
+
+Vamos estruturar a lógica que a nossa IA deve seguir para recomendar os descansos e a frequência ideal, fugindo dos mitos tradicionais das academias.
+
+### 1. Como a IA deve ajustar os Tempos de Descanso
+
+A ciência já mostrou que variações de descanso entre 1 e 5 minutos não alteram a resposta hipertrófica de forma direta, mas eles influenciam o nosso rendimento nas séries. Portanto, a nossa IA não deve engessar o descanso, mas sim calculá-lo de forma inversamente proporcional à intensidade da carga (ou seja, guiado pelo número de repetições).
+
+Aqui está a regra de negócio (tabela de ranges) que você pode programar:
+
+*   **10 ou mais repetições (Foco metabólico):** Descanso de 1 minuto a 1 minuto e 45 segundos. Como essas séries costumam ser em máquinas ou exercícios isoladores (monoarticulares), elas geram menos fadiga geral e menor exigência do sistema nervoso central, não necessitando de longas pausas.
+*   **8 a 9 repetições:** Descanso de 1m45s a 2m15s.
+*   **6 a 7 repetições:** Descanso de 2m15s a 2m45s.
+*   **5 repetições (Trabalho de Força):** Nas três primeiras séries, descanso de 2m30s a 3m30s; a partir da quarta série, subir para 3 a 4 minutos.
+*   **Menos de 5 repetições (Foco Tensional Máximo):** Descanso longo, de 3m30s a 4m30s. Exercícios multiarticulares livres e pesados exigem esse tempo para garantir que a próxima série não perca rendimento.
+
+**Gatilho de Ajuste para a IA:** O descanso nunca deve ser um fator que prejudique o rendimento da série seguinte, a menos que a IA tenha acionado o gatilho de "Progressão Diminuindo a Densidade", onde o objetivo do microciclo é propositalmente cortar o tempo de descanso (ex: de 1m45s para 1m30s) mantendo a carga. 
+
+### 2. Como a IA deve ajustar os Dias de Treino (Frequência e Divisão)
+
+A grande premissa para a nossa lógica aqui é destruir o mito do "mais é melhor". A maioria dos naturais não precisa de 6 ou 7 dias na semana para distribuir um volume eficiente. 
+
+*   **O "Sweet Spot" (3 a 4 dias na semana):** A IA deve recomendar, como base para a maioria dos cenários, de 3 a 4 dias de treino por semana. Isso permite condensar o volume em sessões mais proveitosas e garante o descanso geral (muscular, articular e neural), otimizando a aderência ao invés de diluir o treino em "visitas" à academia para fazer apenas 2 exercícios por dia.
+*   **Quando a IA deve sugerir "Frequência 2" (Treinar o músculo 2x na semana):** Se a planilha acusar que o volume de um determinado grupo muscular está muito alto para uma única sessão (especialmente músculos grandes como costas ou pernas), a IA deve dividir esse volume em dois dias no microciclo. A IA pode sugerir alterar a divisão para modelos inteligentes como "Upper/Lower" (Superiores/Inferiores) ou "Full Body" (Corpo Inteiro).
+*   **Dias de Descanso:** A IA deve lembrar o usuário de que treinar 3 ou 4 vezes na semana não significa fazer esses dias de forma consecutiva; intercalar dias off é crucial para a recuperação.
+*   **Gatilho para Aumentar Dias (+1 Frequência):** Existe apenas uma exceção no planejamento onde a IA deve recomendar adicionar um dia extra na rotina. Isso ocorre no ápice do macrociclo (Mesociclo 2 da Fase de Hipertrofia Pico), quando o atleta atinge o MRV (Máximo Volume Recuperável) com um RPE de quase 10. Nesse momento específico, a IA sugere adicionar +1 dia na semana (como um dia Full Body ou Pernas/Braços) exclusivamente para suportar o acúmulo final de volume antes do descanso final ou competição.
+
+**Como implementar isso no n8n?**
+Podemos criar uma função no seu workflow que mapeie o `número de repetições alvo` e devolva no JSON de saída o `Descanso Recomendado`. Para os dias de treino, podemos criar um "Termômetro de Fadiga": se o usuário estiver treinando 5-6 dias e o rendimento estagnar, a IA dispara um alerta sugerindo condensar a divisão de treino para 4 dias (ex: Push, Pull, Legs, Superior), priorizando a recuperação nervosa. 
+
+O que acha de incluirmos essas lógicas de condicional direto no prompt do nosso node Estrategista?
+
+
+Excelente! Vamos programar mais essa inteligência no nosso workflow. Lidar com os "pontos fracos" exige uma lógica muito mais cirúrgica do que simplesmente mandar o atleta fazer mais séries aleatoriamente. Para que a nossa IA local prescreva ajustes de volume perfeitos, precisamos configurar algumas condicionais e filtros baseados no método do Jayme.
+
+Podemos estruturar a lógica desse ajuste nos seguintes passos:
+
+**1. O Filtro de Nível de Experiência**
+A primeira regra que a nossa IA deve aplicar ao detectar um gatilho de "ponto fraco" é verificar o nível do usuário. Se o praticante for iniciante e reclamar de 2, 3 ou 4 músculos fracos, a IA deve orientar que o que ele precisa é de um desenvolvimento geral do físico, e não de foco em grupos isolados. O ajuste fino de volume para músculos atrasados é uma estratégia que faz sentido apenas para indivíduos intermediários e avançados.
+
+**2. O Gatilho de Ajuste Técnico**
+Antes de simplesmente somar séries à planilha, a IA deve sugerir uma revisão do padrão de movimento. A literatura do autor nos mostra que a grande maioria dos pontos fracos ocorre por dificuldade técnica em um padrão de movimento específico, como a dificuldade de desenvolver o peitoral por não bloquear as escápulas corretamente. A nossa IA deve alertar o usuário: se for apenas um detalhe técnico, um simples ajuste de execução já destravará o desenvolvimento do músculo. É válido também programar um aviso sobre fatores estruturais e genéticos (formato ósseo e inserções musculares), que são imutáveis e podem limitar a estética final daquele músculo.
+
+**3. Reposicionamento Qualitativo (Ordem do Treino)**
+Se o músculo realmente precisa de atenção, a primeira ação prática que o nosso node deve realizar na planilha é alterar a ordem dos exercícios. A IA deve mover os exercícios do grupo muscular fraco para o **início da sessão de treinamento**. A ciência e a prática provam que esse é o momento onde a capacidade de gerar um estímulo de qualidade é maior, pois o rendimento está no seu pico e a fadiga ainda não se acumulou.
+
+**4. Aumento e Divisão do Volume Quantitativo (Frequência 2)**
+Se o volume total do músculo fraco de fato precisar ser aumentado para forçar uma nova adaptação, não podemos deixar a IA simplesmente empilhar 10 séries a mais no mesmo dia. A regra de negócio aqui será:
+*   **Dividir para conquistar:** A IA deve alterar a frequência de treino desse grupo muscular atrasado para 2 vezes na semana.
+*   **Adicionar séries extras no segundo dia:** Em vez de faturar o músculo todo em um só dia, a IA deve sugerir a inclusão de algumas séries extras desse grupo ou de um exercício focado nele em um segundo dia da rotina. 
+*   **Ajuste da divisão:** Para encaixar esse volume adicional sem prejudicar o descanso, a IA pode propor a adição de uma sessão extra na semana (aumentando a frequência geral) utilizando modelos de treino que peguem zonas completas, como inserir um dia de "Full Body" ou "Upper/Lower" (Superiores/Inferiores) na planilha.
+
+Com esses quatro nós lógicos (Experiência -> Técnica -> Ordem -> Frequência/Volume), o nosso projeto vai garantir que o aluno direcione energia máxima para a deficiência, sem fritar o sistema nervoso central com volumes absurdos na mesma sessão. O que acha de criarmos um campo extra no JSON chamado `"Foco_Correcao"` para acionarmos essa rota quando necessário?
+
+
+Fala, parceiro! Chegamos a um dos pontos mais cruciais para o nosso workflow no n8n. Para que a nossa IA saiba exatamente quando disparar os gatilhos de deload ou aumento de volume, ela precisa calcular o "Volume Total Semanal" com precisão cirúrgica, seguindo a métrica do Jayme de Lamadrid.
+
+A literatura do autor nos mostra que o volume não deve ser medido de forma crua (contando todas as séries de todos os exercícios de qualquer jeito). Ele deve ser medido pelo **número de séries realizadas**, pois isso lida com menos variáveis e torna o ajuste muito mais preciso.
+
+Para a nossa IA calcular isso de forma perfeita no JSON, precisamos programar as seguintes regras matemáticas e de filtragem:
+
+### 1. O Filtro de Validade (Apenas *Working Sets*)
+A primeira regra lógica que a IA deve aplicar nos dados de entrada é descartar o lixo. A IA **só deve contabilizar as séries que atingiram intensidade suficiente para serem consideradas séries de trabalho** (Working Sets). Como já alinhamos no prompt anterior, isso significa RPE $\ge$ 7. Se a série foi de aquecimento (*warm-up set*) ou de aproximação (*feeder set*), a IA atribui valor zero para o volume daquela série.
+
+### 2. A Matemática dos Músculos Primários e Secundários
+Aqui está o verdadeiro "pulo do gato" que precisamos codificar no n8n. A IA não pode simplesmente somar as séries de um exercício de forma genérica. Ela precisa distribuir o volume com base no padrão de movimento:
+*   **Exercícios Monoarticulares (Isoladores):** Levam 100% do trabalho (séries) apenas para o grupo muscular primário e único. Se o aluno fez 3 séries válidas de Tríceps Corda, a IA soma +3 no volume total de tríceps.
+*   **Exercícios Multiarticulares (Compostos):** O grupo muscular primário leva 100% do volume, mas **a IA deve computar a metade (50%) das séries totais para os grupos musculares secundários** que auxiliam no movimento.
+
+**Exemplo prático de como a IA deve calcular (que podemos colocar no prompt):**
+*   Se a planilha indica 4 séries válidas de **Supino Reto**: A IA soma +4 séries para o Peitoral (primário), +2 séries para o Deltóide Anterior (secundário) e +2 séries para o Tríceps (secundário).
+*   Se a planilha indica 4 séries válidas de **Agachamento Livre**: A IA soma +4 séries para o Quadríceps, +2 séries para o Glúteo e +2 séries para os Isquiotibiais.
+
+### 3. Subdivisão de Músculos Complexos
+Para deixar a IA ainda mais inteligente, podemos ensinar a ela que alguns grupos musculares possuem subdivisões mecânicas e a contagem muda dependendo do vetor do movimento.
+*   **Costas e Deltóides:** A IA deve subdividir a contagem. Por exemplo, o deltóide anterior participa de movimentos de empurrar (como supinos), então o volume secundário vai para ele. Já o deltóide posterior participa de movimentos de puxar (como remadas), logo, o volume secundário desse tipo de exercício deve ir para a porção posterior do ombro.
+
+### Como implementar no Prompt do Estrategista (n8n):
+
+Podemos adicionar o seguinte bloco de instruções ao nosso *system prompt* para que ele entenda e faça a matemática:
+
+```text
+REGRA DE CONTABILIZAÇÃO DE VOLUME SEMANAL (COMPUTAR POR MÚSCULO):
+Para calcular a variável 'Vol. Total Musculo' semanal, você deve somar apenas as séries de trabalho (Working Sets com RPE >= 7) seguindo a regra de Ouro da Distribuição:
+
+1. Exercícios Monoarticulares (Ex: Cadeira Extensora, Elevação Lateral, Tríceps Corda):
+   - Atribua 100% das séries realizadas ao músculo principal alvo.
+
+2. Exercícios Multiarticulares (Ex: Supino, Agachamento, Remada):
+   - Músculo Primário (executor principal): Atribua 100% das séries realizadas.
+   - Músculos Secundários (sinergistas): Atribua 50% das séries realizadas. 
+   - (Exemplo: 4 séries de Levantamento Terra = 4 séries para Isquiotibiais, 4 séries para Glúteo, e 2 séries para Costas).
+
+3. Subdivisões: Se o movimento for de "Empurrar", o volume secundário de ombro vai para o Deltóide Anterior. Se for "Puxar", vai para o Deltóide Posterior.
+
+Sua análise final deve somar todas essas frações e verificar se o total semanal de qualquer músculo está cruzando a zona de perigo do MRV (Máximo Volume Recuperável), que fica próximo a 20 séries por grupo muscular.
+```
+
+Com essa lógica, nossa inteligência artificial local não vai cometer o erro clássico de achar que o peito está descansado só porque o treino foi focado em tríceps, pois ela saberá que o tríceps e os deltóides já acumularam volume residual dos supinos! O que acha de inserirmos essa lógica de cálculo no backend para devolvermos à IA o número já "mastigado", ou prefere que a própria IA cruze os dados brutos dos exercícios da planilha?
+
+
+Prioridade de ajuste na Progressão de carga:
+1. Repetições 
+2. Peso
+3. Volume
+
+Seguir com progressão dupla (peso e reps) até superar a tonelagem do peso anterior.
+Caso não consiga progredir por 2 semanas, ajustar volume.
+
+Cenário péssimo e óbvio:
+Se performance está caindo (menos repetições com mesmo peso), fadiga/MRV está alta: diminuir volume
+
+Cenário duvidoso:
+Se performance está travada (mesmas marcas), existem duas hipóteses:
+* Treino fácil, sem pump, recuperação rápida -> add 2 séries semanais ou mais
+* Treino pesado, dor na articulação, sono ruim, sem energia -> Deload ou reduzir séries 
+
+if performance_down:
+    decrease_volume
+
+elif performance_flat:
+    if low_fatigue:
+        increase_volume
+    else:
+        decrease_volume
+
+
+
+
+PLANILHA:
+Para que você possa utilizar a planilha como uma ferramenta poderosa de prescrição, é fundamental entender a "lógica por trás dos números". No livro *Musculação para Naturais*, Jayme de Lamadrid enfatiza que o progresso não é apenas aumentar peso, mas sim a **adaptação orgânica ao estímulo**.
+
+Aqui está a análise semântica das fórmulas dividida por categorias:
+
+-----
+
+### 1\. Monitoramento de Volume e Repetições (D, E, F)
+
+  * **Coluna D (Volume 7d):**
+      * **O que representa:** A "Densidade de Treino" semanal.
+      * **Input:** Datas e tipos de séries da aba `Treinos`.
+      * **Processamento:** Filtra apenas as séries "efetivas" (Working, Top, Back Off) ocorridas nos últimos 7 dias.
+      * **Importância:** Garante que o atleta esteja dentro da faixa de **10 a 20 séries semanais** recomendada para naturais, evitando o *overtraining* ou volume lixo.
+  * **Colunas E (Reps Recentes) e F (Total Reps):**
+      * **O que representam:** O desempenho quantitativo da última sessão.
+      * **Processamento:** Busca a data mais recente do exercício e extrai/soma as repetições, ignorando aquecimentos.
+      * **Importância:** Crucial para a **Progressão Dupla**. Se o total de repetições subiu com a mesma carga, houve progresso no volume antes mesmo do aumento de peso.
+
+### 2\. Intensidade e Carga (G, H)
+
+  * **Coluna G (Última Carga) e H (Recorde Carga):**
+      * **O que representam:** A "Intensidade de Carga" absoluta.
+      * **Processamento:** Compara o peso máximo levantado na última sessão com o máximo histórico registrado na aba `Treinos`.
+      * **Importância:** Indica se o indivíduo está se tornando mais forte. Para o profissional, ajuda a definir se é hora de mudar de fase na periodização (ex: sair de Acumulação para Intensificação).
+
+### 3\. Tonelagem e Trabalho Total (I, J)
+
+  * **Coluna I (Última Tonelagem) e J (Recorde Tonelagem):**
+      * **O que representam:** O **Volume de Carga** (Séries x Repetições x Carga).
+      * **Processamento:** A fórmula `QUERY` agrupa os dados por data para calcular a tonelagem total de cada sessão individual e encontrar o pico histórico.
+      * **Importância:** É a métrica mais fiel do "Trabalho Real". Um natural pode progredir aumentando a Tonelagem total mesmo sem aumentar a carga na barra, melhorando a capacidade de trabalho.
+
+### 4\. Força Teórica e Comparação (K, L)
+
+  * **Coluna K (1RM Estimado) e L (Melhor 1RM):**
+      * **O que representam:** O potencial máximo de força (Repetição Máxima Teórica).
+      * **Processamento:** Utiliza a **Fórmula de Epley** `Carga * (1 + Reps/30)`.
+      * **Importância:** Permite comparar a evolução entre faixas de repetições diferentes. Se o seu 1RM estimado subiu de 100kg para 105kg, você está mais forte, quer tenha feito 5 reps pesadas ou 12 reps moderadas. É a métrica que "nivela" o progresso.
+
+### 5\. Indicadores de Evolução (M, N)
+
+  * **Coluna M (Progresso) e N (Status):**
+      * **O que representam:** O veredito da sessão atual vs. anterior.
+      * **Processamento:** Utiliza a função `LET` para armazenar a tonelagem da sessão atual e da sessão imediatamente anterior para comparação direta.
+      * **Importância:** Fornece um **feedback visual imediato**. Se o status for "🆕 Primeira Sessão", o sistema cria uma base; se for "🚀 Progressão", o estímulo está correto. Se estiver "⚖️ Estagnado", o profissional sabe que precisa ajustar o descanso, a dieta ou a técnica (conceito de *Deload* do livro).
+
+### 6\. Médias e Percepção de Esforço (Q, R)
+
+  * **Coluna Q (Média 4s):**
+      * **O que representa:** A estabilidade do rendimento (Média Móvel).
+      * **Processamento:** Calcula a média da tonelagem das últimas 4 sessões únicas.
+      * **Importância:** Elimina ruídos de "dias ruins". Se a média 4s está subindo, a tendência é de hipertrofia, mesmo que um treino isolado tenha sido abaixo do esperado.
+  * **Coluna R (RPE Médio):**
+      * **O que representa:** A **Intensidade do Esforço** percebido.
+      * **Processamento:** Média da escala RPE (1-10) das séries efetivas da última sessão.
+      * **Importância:** Verifica se o atleta está realmente treinando com a intensidade prescrita. Se o RPE está sempre 7 em uma fase que deveria ser RPE 9-10 (Intensificação), o progresso será lento por falta de esforço real.
+
+### Por que essas fórmulas são importantes para você?
+
+Como profissional, seu objetivo é a **precisão**. Essas fórmulas transformam uma lista de treinos em um "painel de controle" que separa a percepção subjetiva (o aluno se sentir cansado) do resultado objetivo (o corpo se adaptou e gerou mais trabalho). Elas permitem que você aplique a **Supercompensação** com base em fatos, não em palpites.
+
+
+Com base nos dados das tabelas 'Treinos' e 'Progressao' e nos princípios de progressão de carga e tonelagem, aqui estão as fórmulas para a linha 2 da aba **Progressao**.
+
+Você pode copiar estas fórmulas para as respectivas células e arrastá-las para baixo:### Colunas de Volume e Repetições  * **Coluna D (Volume 7d):**
+    `=SUM(ARRAYFORMULA(COUNTIFS(Treinos!$E:$E; $C2; Treinos!$B:$B; ">="&TODAY()-7; Treinos!$F:$F; {"Working Set"; "Top Set"; "Back Off Set"})))`
+  * **Coluna E (Reps Recentes):**
+    `=IFERROR(JOIN(", "; FILTER(Treinos!$I:$I; Treinos!$E:$E = $C2; Treinos!$B:$B = MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2); NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); "-")`
+  * **Coluna F (Total Reps):**
+    `=IFERROR(SUM(FILTER(Treinos!$I:$I; Treinos!$E:$E = $C2; Treinos!$B:$B = MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2); NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0)`### Colunas de Carga e Tonelagem  * **Coluna G (Última Carga):**
+    `=IFERROR(MAX(FILTER(Treinos!$H:$H; Treinos!$E:$E = $C2; Treinos!$B:$B = MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2))); 0)`
+  * **Coluna H (Recorde Carga):**
+    `=IFERROR(MAXIFS(Treinos!$H:$H; Treinos!$E:$E; $C2); 0)`
+  * **Coluna I (Última Tonelagem):**
+    `=IFERROR(SUM(FILTER(Treinos!$L:$L; Treinos!$E:$E = $C2; Treinos!$B:$B = MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2); NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0)`
+  * **Coluna J (Recorde Tonelagem):**
+    `=IFERROR(MAX(QUERY(Treinos!$B:$L; "select sum(L) where E = '" & SUBSTITUTE($C2; "'"; "''") & "' and not F matches 'Warming Set|Feeder Set' group by B label sum(L) ''")); 0)`### Colunas de 1RM e Evolução  * **Coluna K (1RM Estimado):**
+    `=IFERROR(MAX(FILTER(Treinos!$H:$H * (1 + Treinos!$I:$I / 30); Treinos!$E:$E = $C2; Treinos!$B:$B = MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2); NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0)`
+  * **Coluna L (Melhor 1RM):**
+    `=IFERROR(MAX(FILTER(Treinos!$H:$H * (1 + Treinos!$I:$I / 30); Treinos!$E:$E = $C2; NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0)`
+  * **Coluna M (Progresso):**
+    `=LET(last_ton; I2; prev_date; MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2; Treinos!$B:$B; "<" & MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2)); prev_ton; IFERROR(SUM(FILTER(Treinos!$L:$L; Treinos!$E:$E = $C2; Treinos!$B:$B = prev_date; NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0); IF(prev_ton = 0; "🆕"; IF(last_ton > prev_ton; "⬆️"; IF(last_ton < prev_ton; "⬇️"; "↔️"))))`
+  * **Coluna N (Status):**
+    `=LET(last_ton; I2; prev_date; MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2; Treinos!$B:$B; "<" & MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2)); prev_ton; IFERROR(SUM(FILTER(Treinos!$L:$L; Treinos!$E:$E = $C2; Treinos!$B:$B = prev_date; NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0); IF(prev_ton = 0; "Primeira Sessão"; IF(last_ton > prev_ton; "🚀 Progressão"; IF(last_ton < prev_ton; "⚠️ Regressão"; "⚖️ Estagnado"))))`### Colunas de Médias  * **Coluna Q (Média 4s):**
+    `=IFERROR(AVERAGE(QUERY(Treinos!$B:$L; "select sum(L) where E = '" & SUBSTITUTE($C2; "'"; "''") & "' and not F matches 'Warming Set|Feeder Set' group by B order by B desc limit 4 label sum(L) ''")); 0)`
+  * **Coluna R (RPE Médio):**
+    `=IFERROR(AVERAGE(FILTER(Treinos!$K:$K; Treinos!$E:$E = $C2; Treinos!$B:$B = MAXIFS(Treinos!$B:$B; Treinos!$E:$E; $C2); NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder")))); 0)`**Observações:**  * As fórmulas utilizam o ponto e vírgula (`;`) como separador de argumentos, padrão para o Google Sheets em português.
+  * A função `SUBSTITUTE($C2; "'"; "''")` dentro do `QUERY` serve para garantir que exercícios com apóstrofo no nome não quebrem a fórmula.
+  * O filtro `NOT(REGEXMATCH(Treinos!$F:$F; "Warming|Feeder"))` garante que apenas as séries de trabalho (Working, Top, Back Off) sejam contabilizadas nos cálculos de performance.
