@@ -46,11 +46,11 @@
 
 ### P3 — Polimento Visual
 
-- [ ] **V1** · Sistema tipográfico: padronizar escala (headings, labels, captions, units)  
-- [ ] **V2** · Sistema de botões: CTA primário único (verde existente) — remover botão escuro da Nutrition  
-- [ ] **V3** · Contraste da tag "CRESCER SECO" e badges de cores claras — atingir WCAG AA  
-- [ ] **V4** · Hierarquia inconsistente de ALL CAPS vs. title case nos labels  
-- [ ] **V5** · Skeleton loaders genéricos para todas as telas com fetch async  
+- [x] **V1** · Sistema tipográfico: padronizar escala (headings, labels, captions, units)  
+- [x] **V2** · Sistema de botões: CTA primário único (verde existente) — remover botão escuro da Nutrition  
+- [x] **V3** · Contraste da tag "CRESCER SECO" e badges de cores claras — atingir WCAG AA  
+- [x] **V4** · Hierarquia inconsistente de ALL CAPS vs. title case nos labels  
+- [x] **V5** · Skeleton loaders genéricos para todas as telas com fetch async  
 
 ---
 
