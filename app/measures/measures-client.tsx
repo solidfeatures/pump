@@ -68,6 +68,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { PhotoSection } from '@/components/photo-section'
+import { BodyProgressTimeline } from '@/components/body-progress-timeline'
 
 interface MeasuresClientProps {
   initialHistory: BodyMetric[]
@@ -371,6 +372,9 @@ export function MeasuresClient({ initialHistory, latestMetrics: initialLatest }:
 
         {/* ── OVERVIEW ── */}
         <TabsContent value="overview" className="space-y-6">
+          {/* Cinematic progress timeline — hero section */}
+          <BodyProgressTimeline metrics={history} />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -448,6 +452,9 @@ export function MeasuresClient({ initialHistory, latestMetrics: initialLatest }:
               </div>
             </GlassCard>
           </div>
+
+          {/* Photo management */}
+          <PhotoSection />
         </TabsContent>
 
         {/* ── HISTORY ── */}
@@ -874,8 +881,6 @@ export function MeasuresClient({ initialHistory, latestMetrics: initialLatest }:
         </DialogContent>
       </Dialog>
 
-      {/* Progress Photos */}
-      <PhotoSection />
     </div>
   )
 }
