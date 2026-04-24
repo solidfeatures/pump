@@ -11,6 +11,7 @@ import { BackButton } from '@/components/back-button'
 import { notFound } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { WorkoutControls } from '@/components/workout-controls'
+import { getWorkoutSessionByDateAction } from '@/app/actions'
 
 const TIMER_KEY = (id: string) => `antigravity-timer-${id}`
 
@@ -36,7 +37,7 @@ export default function WorkoutPlayerPage({
   params: Promise<{ id: string }> 
 }) {
   const { id } = use(params)
-  const { getSessionById, startWorkout, pauseWorkout, resumeWorkout, completeWorkout } = useWorkout()
+  const { getSessionById, startWorkout, pauseWorkout, resumeWorkout, completeWorkout, mergeDbSession } = useWorkout()
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [elapsedTime, setElapsedTime] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -44,6 +45,15 @@ export default function WorkoutPlayerPage({
   const startedAtRef = useRef<number | null>(null)
 
   const session = getSessionById(id)
+
+  // Fetch DB session on mount and merge — enables cross-device persistence
+  useEffect(() => {
+    if (!session) return
+    getWorkoutSessionByDateAction(session.date).then(dbSession => {
+      if (dbSession) mergeDbSession(dbSession)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.date])
 
   // Restore timer from localStorage on mount
   useEffect(() => {
@@ -137,7 +147,7 @@ export default function WorkoutPlayerPage({
             <div className="flex items-center gap-4">
               <BackButton fallback="/workout" />
               <div>
-                <h1 className="text-xl font-bold tracking-tight">{session.name}</h1>
+                <h1 className="text-xl font-bold tracking-tight">{session.name || 'Treino'}</h1>
                 <p className="text-sm text-muted-foreground">
                   {(session.exercises ?? []).length} exercícios · {totalSets} séries
                 </p>
@@ -146,7 +156,7 @@ export default function WorkoutPlayerPage({
 
             {/* Timer + Controls */}
             <WorkoutControls
-              status={session.status as any}
+              status={session.status ?? 'pending'}
               onStart={handleStart}
               onPause={handlePause}
               onResume={handleResume}

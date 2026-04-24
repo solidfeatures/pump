@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkout } from '@/lib/workout-context'
 import { usePreferences } from '@/lib/preferences-context'
@@ -33,6 +33,16 @@ export default function WorkoutListPage() {
   const { sessions, getTodaysWorkout, getProgressionData, exercises } = useWorkout()
   const { locale } = usePreferences()
   const [historyOpen, setHistoryOpen] = useState(false)
+  const historyRef = useRef<HTMLElement>(null)
+
+  const toggleHistory = () => {
+    setHistoryOpen(o => {
+      if (!o) {
+        setTimeout(() => historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      }
+      return !o
+    })
+  }
 
   const dfnsLocale = locale === 'pt' ? ptBR : locale === 'es' ? es : enUS
   const todayWorkout = getTodaysWorkout()
@@ -170,9 +180,9 @@ export default function WorkoutListPage() {
 
       {/* ────────── COMPLETED (collapsible) ────────── */}
       {completedWorkouts.length > 0 ? (
-        <section>
+        <section ref={historyRef}>
           <button
-            onClick={() => setHistoryOpen(o => !o)}
+            onClick={toggleHistory}
             className="w-full flex items-center justify-between px-1 py-2 group mb-4"
           >
             <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">

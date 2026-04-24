@@ -22,15 +22,15 @@
 
 - [ ] **B1** · Plan → Semana: sessões mostram "0 exercícios" — exercise matching case-insensitive + template-first (AI route)  
 - [ ] **B2** · Plan → "Distribuição de Volume" mostra "Nenhum plano configurado" mesmo com plano ativo  
-- [ ] **B3** · History → Aba "Treinos": apenas 2 de 8 itens visíveis (overflow/render bug)  
-- [ ] **B4** · Home "Esta Semana": conteúdo aparece abaixo do viewport sem indicador de scroll  
-- [ ] **B5** · Workout → accordion "Últimos Treinos" expande para fora do viewport sem auto-scroll  
+- [x] **B3** · History → Aba "Treinos": apenas 2 de 8 itens visíveis (overflow/render bug)  
+- [x] **B4** · Home "Esta Semana": conteúdo aparece abaixo do viewport sem indicador de scroll  
+- [x] **B5** · Workout → accordion "Últimos Treinos" expande para fora do viewport sem auto-scroll  
 
 ### P1 — Usabilidade Severa
 
 - [ ] **U1** · Responsividade mobile: sidebar fixa colapsa layout em 375px — hamburger menu + single-column layout  
-- [ ] **U2** · Idioma inconsistente: `FRIDAY`, menu items em inglês, `STREAK`, `BODY FAT`, `Split` — padronizar para português  
-- [ ] **U3** · Workout player: título da sessão ausente no header — mostrar nome da sessão  
+- [x] **U2** · Idioma inconsistente: `FRIDAY`, menu items em inglês, `STREAK`, `BODY FAT`, `Split` — padronizar para português  
+- [x] **U3** · Workout player: título da sessão ausente no header — mostrar nome da sessão  
 - [ ] **U4** · Home "Hoje" dia de descanso: não mostra próximo treino programado nem atalho para o plano  
 - [ ] **U5** · Nutrition: texto invisível durante carregamento (branco sobre branco) — adicionar skeleton loader  
 

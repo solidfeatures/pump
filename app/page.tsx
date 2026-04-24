@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { useWorkout } from '@/lib/workout-context'
@@ -33,6 +33,11 @@ export default function Dashboard() {
   const { locale } = usePreferences()
   const [activeTab, setActiveTab] = useState('today')
   const [viewDate, setViewDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const tabsTopRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    tabsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [activeTab])
 
   const dfnsLocale = locale === 'pt' ? ptBR : locale === 'es' ? es : enUS
 
@@ -114,6 +119,7 @@ export default function Dashboard() {
         </p>
       </motion.div>
 
+      <div ref={tabsTopRef} className="scroll-mt-4" />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="glass border-white/10">
           <TabsTrigger value="today" className="gap-2">
@@ -181,7 +187,7 @@ export default function Dashboard() {
             stats={[
               {
                 icon: Flame,
-                label: 'Streak',
+                label: 'Sequência',
                 value: streakDays,
                 unit: 'dias',
                 tone: streakDays >= 7 ? 'success' : streakDays >= 3 ? 'warning' : 'default',

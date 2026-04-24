@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useWorkout } from '@/lib/workout-context'
 import { GlassCard, GlassCardTitle } from '@/components/glass-card'
@@ -35,8 +35,13 @@ export default function HistoryPage() {
   const [selectedMonday, setSelectedMonday] = useState<string>(
     () => startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0]
   )
+  const tabsTopRef = useRef<HTMLDivElement>(null)
   const [latestMetrics, setLatestMetrics] = useState<BodyMetric | null>(null)
   const [metrics30d, setMetrics30d] = useState<BodyMetric[]>([])
+
+  useEffect(() => {
+    tabsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [activeTab])
 
   useEffect(() => {
     (async () => {
@@ -202,6 +207,7 @@ export default function HistoryPage() {
         </p>
       </motion.div>
 
+      <div ref={tabsTopRef} className="scroll-mt-4" />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="glass border-white/10">
           <TabsTrigger value="achievements" className="gap-2">
@@ -221,7 +227,7 @@ export default function HistoryPage() {
             stats={[
               {
                 icon: Flame,
-                label: 'Streak',
+                label: 'Sequência',
                 value: streakDays,
                 unit: 'dias',
                 tone: streakDays >= 7 ? 'success' : streakDays >= 3 ? 'warning' : 'default',
@@ -301,7 +307,7 @@ export default function HistoryPage() {
                   <BarChart3 className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-widest">Body Fat</p>
+                  <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-widest">Gordura Corporal</p>
                   <p className="text-2xl font-black tracking-tighter">
                     {latestMetrics.bf_pct ?? '--'}<span className="text-xs font-normal text-muted-foreground ml-1">%</span>
                   </p>
@@ -348,12 +354,12 @@ export default function HistoryPage() {
               />
             </GlassCard>
           ) : (
-            completedSessions.map((session, index) => (
+            completedSessions.map((session) => (
               <motion.div
                 key={session.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(index * 0.04, 0.4) }}
+                transition={{ duration: 0.2 }}
               >
                 <Link href={`/workout/${session.id}`}>
                   <GlassCard hover className="flex items-center justify-between cursor-pointer">
