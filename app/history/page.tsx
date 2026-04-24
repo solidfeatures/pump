@@ -1,118 +1,99 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useWorkout } from '@/lib/workout-context'
 import { GlassCard, GlassCardTitle } from '@/components/glass-card'
+import { QuickStatsRow } from '@/components/quick-stats-row'
+import { EmptyStateGuide } from '@/components/empty-state-guide'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Calendar,
-  TrendingUp,
-  Dumbbell, 
-  CheckCircle2,
-  ChevronRight,
-  BarChart3,
-  User,
-  Loader2,
-  Target,
-  Edit2,
-  Check,
-  Apple,
-  Zap,
-  Flame,
-  Clock
+import {
+  Calendar, TrendingUp, Dumbbell, CheckCircle2, ChevronRight, ChevronLeft,
+  Activity, Award, Flame, Trophy, Scale, Target, ArrowUp, ArrowDown, Minus,
+  BarChart3, Sparkles,
 } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 import { muscleGroupLabels, muscleGroupColors, getExercisePrimaryMuscle } from '@/lib/mock-data'
 import { PhotoTimeline } from '@/components/photo-timeline'
 import { cn } from '@/lib/utils'
-import { AthleteProfile, updateAthleteProfile } from '@/lib/db/athlete'
 import { BodyMetric } from '@/lib/db/measures'
-import { AthleteGoal } from '@/lib/types'
-import { 
-  updateProfileAction, 
-  getProfileAction, 
-  getLatestMetricsAction,
-  getLatestNutritionPlanAction,
-  getAllPhasesAction
-} from '@/app/actions'
-import { useEffect } from 'react'
-import { NutritionPlan } from '@/lib/db/nutrition'
+import { ExerciseMuscle } from '@/lib/types'
+import { getLatestMetricsAction } from '@/app/actions'
+import { calculateWeeklyVolumeByMuscle, MRV_THRESHOLD, MEV_THRESHOLD } from '@/lib/periodization'
 
 export default function HistoryPage() {
-  const { sessions, getPRRecords, currentPhase } = useWorkout()
-  const [activeTab, setActiveTab] = useState('list')
-  const [athleteProfile, setAthleteProfile] = useState<AthleteProfile | null>(null)
+  const { sessions, getPRRecords, exercises } = useWorkout()
+  const [activeTab, setActiveTab] = useState('achievements')
+  const [weekOffset, setWeekOffset] = useState(0)
   const [latestMetrics, setLatestMetrics] = useState<BodyMetric | null>(null)
-  const [latestNutrition, setLatestNutrition] = useState<NutritionPlan | null>(null)
-  const [allPhases, setAllPhases] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isEditingGoal, setIsEditingGoal] = useState(false)
-  const [updatingGoal, setUpdatingGoal] = useState(false)
+  const [metrics30d, setMetrics30d] = useState<BodyMetric[]>([])
 
   useEffect(() => {
-    async function loadData() {
+    (async () => {
       try {
-        const [p, m, n, phases] = await Promise.all([
-          getProfileAction(),
-          getLatestMetricsAction(),
-          getLatestNutritionPlanAction(),
-          getAllPhasesAction()
-        ])
-        setAthleteProfile(p)
+        const m = await getLatestMetricsAction()
         setLatestMetrics(m)
-        setLatestNutrition(n)
-        setAllPhases(phases)
+        // Could fetch last 30d metrics here if endpoint exists — skipping for v1
+        setMetrics30d([])
       } catch (e) {
         console.error(e)
-      } finally {
-        setLoading(false)
       }
-    }
-    loadData()
+    })()
   }, [])
 
-  const handleUpdateGoal = async (newGoal: AthleteGoal) => {
-    if (!athleteProfile) return
-    setUpdatingGoal(true)
-    try {
-      const updated = await updateProfileAction({ id: athleteProfile.id, goal: newGoal })
-      setAthleteProfile(updated)
-      setIsEditingGoal(false)
-      // Refresh nutrition plan if goal changes
-      const n = await getLatestNutritionPlanAction()
-      setLatestNutrition(n)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setUpdatingGoal(false)
-    }
-  }
+  const completedSessions = useMemo(() =>
+    sessions.filter(s => s.status === 'completed')
+      .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()),
+    [sessions]
+  )
 
-  const goalOptions: AthleteGoal[] = [
-    'Crescer Seco',
-    'Emagrecer',
-    'Ganho de Peso',
-    'Manutenção'
-  ]
-  
-  const completedSessions = useMemo(() => {
-    return sessions
-      .filter(s => s.status === 'completed')
-      .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())
-  }, [sessions])
-  
   const prRecords = useMemo(() => getPRRecords(), [getPRRecords])
-  
-  // Calculate overall stats
+
+  // ── Streak: consecutive days back from today with a completed session ──
+  const streakDays = useMemo(() => {
+    if (!completedSessions.length) return 0
+    const dates = new Set(completedSessions.map(s => s.date))
+    let streak = 0
+    const cursor = new Date()
+    for (let i = 0; i < 365; i++) {
+      const key = cursor.toISOString().split('T')[0]
+      if (dates.has(key)) {
+        streak++
+        cursor.setDate(cursor.getDate() - 1)
+      } else if (i === 0) {
+        // Today might not have a workout yet — check yesterday
+        cursor.setDate(cursor.getDate() - 1)
+      } else {
+        break
+      }
+    }
+    return streak
+  }, [completedSessions])
+
+  // ── Consistency: % of last 14 days that had a workout ──
+  const consistency14d = useMemo(() => {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 14)
+    const recent = completedSessions.filter(s => parseISO(s.date) >= cutoff)
+    const uniqueDays = new Set(recent.map(s => s.date)).size
+    return Math.round((uniqueDays / 14) * 100)
+  }, [completedSessions])
+
+  // ── Last PR ──
+  const latestPR = useMemo(() => {
+    if (!prRecords.length) return null
+    return prRecords.reduce((latest, pr) =>
+      parseISO(pr.date) > parseISO(latest.date) ? pr : latest
+    , prRecords[0])
+  }, [prRecords])
+
+  // ── Overall stats ──
   const overallStats = useMemo(() => {
     let totalSets = 0
     let totalVolume = 0
-    const totalWorkouts = completedSessions.length
-    
     completedSessions.forEach(session => {
       session.exercises?.forEach(ex => {
         ex.sets.forEach(set => {
@@ -123,411 +104,447 @@ export default function HistoryPage() {
         })
       })
     })
-    
-    return { totalWorkouts, totalSets, totalVolume }
+    return { totalWorkouts: completedSessions.length, totalSets, totalVolume }
   }, [completedSessions])
-  
+
+  // ── Weekly analysis ──
+  const selectedWeek = useMemo(() => {
+    const base = addWeeks(new Date(), weekOffset)
+    return {
+      start: startOfWeek(base, { weekStartsOn: 1 }),
+      end: endOfWeek(base, { weekStartsOn: 1 }),
+    }
+  }, [weekOffset])
+
+  const prevWeek = useMemo(() => ({
+    start: subWeeks(selectedWeek.start, 1),
+    end: subWeeks(selectedWeek.end, 1),
+  }), [selectedWeek])
+
+  const weekSessions = useMemo(() => {
+    const s = selectedWeek.start.toISOString().split('T')[0]
+    const e = selectedWeek.end.toISOString().split('T')[0]
+    return completedSessions.filter(sess => sess.date >= s && sess.date <= e)
+  }, [completedSessions, selectedWeek])
+
+  const prevWeekSessions = useMemo(() => {
+    const s = prevWeek.start.toISOString().split('T')[0]
+    const e = prevWeek.end.toISOString().split('T')[0]
+    return completedSessions.filter(sess => sess.date >= s && sess.date <= e)
+  }, [completedSessions, prevWeek])
+
+  const weekVolumeByMuscle = useMemo(() => {
+    const sets = weekSessions.flatMap(s => s.exercises?.flatMap(ex => ex.sets) ?? [])
+    const muscleMap: Record<string, ExerciseMuscle[]> = {}
+    for (const e of exercises) {
+      if (e.muscles?.length) muscleMap[e.id] = e.muscles
+    }
+    return calculateWeeklyVolumeByMuscle(sets, muscleMap)
+  }, [weekSessions, exercises])
+
+  const exerciseComparison = useMemo(() => {
+    const allIds = new Set([
+      ...weekSessions.flatMap(s => (s.exercises ?? []).map(ex => ex.exerciseId)),
+    ])
+    const getTonnage = (sessArr: typeof weekSessions, exerciseId: string) =>
+      sessArr.reduce((sum, s) => {
+        const ex = s.exercises?.find(e => e.exerciseId === exerciseId)
+        return sum + (ex?.sets.reduce((t, set) => t + (set.loadKg || 0) * (set.reps || 0), 0) ?? 0)
+      }, 0)
+
+    return Array.from(allIds)
+      .map(exerciseId => {
+        const exercise = exercises.find(e => e.id === exerciseId)
+        if (!exercise) return null
+        const current = getTonnage(weekSessions, exerciseId)
+        const previous = getTonnage(prevWeekSessions, exerciseId)
+        const delta = previous > 0 ? ((current - previous) / previous) * 100 : null
+        return { exerciseId, name: exercise.name, current, previous, delta }
+      })
+      .filter((e): e is NonNullable<typeof e> => e !== null && e.current > 0)
+      .sort((a, b) => b.current - a.current)
+      .slice(0, 8)
+  }, [weekSessions, prevWeekSessions, exercises])
+
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6"
       >
         <h1 className="text-3xl font-bold tracking-tight mb-2">Histórico</h1>
         <p className="text-muted-foreground">
-          Revise seus treinos anteriores e acompanhe seu progresso.
+          Suas conquistas, sessões e análise detalhada ao longo do tempo.
         </p>
       </motion.div>
 
-      {/* Progress photo timeline */}
-      <div className="mb-8">
-        <PhotoTimeline />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="glass border-white/10">
+          <TabsTrigger value="achievements" className="gap-2">
+            <Trophy className="w-4 h-4" />Conquistas
+          </TabsTrigger>
+          <TabsTrigger value="workouts" className="gap-2">
+            <Dumbbell className="w-4 h-4" />Treinos
+          </TabsTrigger>
+          <TabsTrigger value="analysis" className="gap-2">
+            <Activity className="w-4 h-4" />Análise
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Resumo do Atleta e Nutrição */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="lg:col-span-3"
-        >
-          <GlassCard className="overflow-hidden p-0 border-primary/20 h-full">
-            <div className="bg-primary/5 p-4 border-b border-primary/10 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" />
-                <h2 className="font-bold text-lg">Perfil do Atleta & Metas</h2>
-              </div>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                    SÓCIO PUMP
-                  </div>
-                  <div className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
-                    {currentPhase?.name || 'Sem Fase Ativa'}
-                  </div>
+        {/* ────────── TAB 1: CONQUISTAS ────────── */}
+        <TabsContent value="achievements" className="space-y-6">
+          <QuickStatsRow
+            stats={[
+              {
+                icon: Flame,
+                label: 'Streak',
+                value: streakDays,
+                unit: 'dias',
+                tone: streakDays >= 7 ? 'success' : streakDays >= 3 ? 'warning' : 'default',
+              },
+              {
+                icon: Target,
+                label: 'Consistência (14d)',
+                value: `${consistency14d}%`,
+                tone: consistency14d >= 70 ? 'success' : consistency14d >= 40 ? 'warning' : 'danger',
+              },
+              {
+                icon: Dumbbell,
+                label: 'Treinos Totais',
+                value: overallStats.totalWorkouts,
+              },
+              {
+                icon: TrendingUp,
+                label: 'Volume Total',
+                value: overallStats.totalVolume >= 1000
+                  ? `${(overallStats.totalVolume / 1000).toFixed(1)}k`
+                  : overallStats.totalVolume,
+                unit: 'kg',
+              },
+            ]}
+          />
+
+          {/* Hero Last PR */}
+          {latestPR && (
+            <GlassCard className="p-6 border-amber-500/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+              <div className="relative flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-amber-500/15 text-amber-400">
+                  <Award className="w-6 h-6" />
                 </div>
-              )}
-            </div>
-            
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Section 1: Objective & Phase */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
-                      <Target className="w-3 h-3 text-primary" />
-                      Objetivo Principal
-                    </p>
-                    {isEditingGoal ? (
-                      <div className="flex items-center gap-2 mt-2">
-                        <select
-                          className="w-full bg-black/60 border border-primary/30 rounded-xl text-sm p-2 focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer"
-                          value={athleteProfile?.goal}
-                          onChange={(e) => handleUpdateGoal(e.target.value as AthleteGoal)}
-                          disabled={updatingGoal}
-                        >
-                          {goalOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                        {updatingGoal && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingGoal(true)}>
-                        <p className="text-xl font-black text-primary tracking-tight">
-                          {loading ? '...' : (athleteProfile?.goal || 'Crescer Seco')}
-                        </p>
-                        <Edit2 className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all ml-1" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-4 border-t border-white/5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1 mb-2">
-                      <Clock className="w-3 h-3 text-amber-500" />
-                      Status do Macrociclo
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Fase Atual</span>
-                        <span className="font-bold text-white">{currentPhase?.name || '--'}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Metodologia</span>
-                        <span className="text-white/80">Jayme de Lamadrid</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 2: Body Metrics */}
-                <div className="space-y-4 md:border-l md:border-r border-white/5 md:px-8">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
-                    <BarChart3 className="w-3 h-3 text-blue-500" />
-                    Medidas Atuais
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1">
+                    Último Recorde Pessoal
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
-                      <p className="text-[10px] text-muted-foreground uppercase mb-1">Peso</p>
-                      <p className="text-2xl font-black tracking-tighter">
-                        {loading ? '...' : (latestMetrics?.weight_kg ? `${latestMetrics.weight_kg}` : '--')}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                  <h3 className="text-xl font-bold mb-2">{latestPR.exerciseName}</h3>
+                  <div className="flex items-end gap-6 flex-wrap">
+                    <div>
+                      <p className="text-3xl font-black text-primary">
+                        {latestPR.weight}
+                        <span className="text-base font-normal text-muted-foreground ml-0.5">kg × {latestPR.reps}</span>
                       </p>
                     </div>
-                    <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
-                      <p className="text-[10px] text-muted-foreground uppercase mb-1">BF</p>
-                      <p className="text-2xl font-black tracking-tighter">
-                        {loading ? '...' : (latestMetrics?.bf_pct ? `${latestMetrics.bf_pct}` : '--')}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">%</span>
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-                      <span>Consistência</span>
-                      <span>85%</span>
-                    </div>
-                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary w-[85%]" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: AI Intelligence Nutrition */}
-                <div className="space-y-4">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
-                    <Apple className="w-3 h-3 text-emerald-500" />
-                    Estratégia Nutricional
-                  </p>
-                  
-                  {latestNutrition ? (
-                    <div className="space-y-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-emerald-500 tracking-tighter">{latestNutrition.calories_target}</span>
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">kcal/dia</span>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <div className="flex-1 text-center py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                          <p className="text-xs font-bold text-emerald-400">{latestNutrition.protein_g}g</p>
-                          <p className="text-[8px] text-muted-foreground uppercase">Prot</p>
-                        </div>
-                        <div className="flex-1 text-center py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                          <p className="text-xs font-bold text-emerald-400">{latestNutrition.carbs_g}g</p>
-                          <p className="text-[8px] text-muted-foreground uppercase">Carb</p>
-                        </div>
-                        <div className="flex-1 text-center py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                          <p className="text-xs font-bold text-emerald-400">{latestNutrition.fat_g}g</p>
-                          <p className="text-[8px] text-muted-foreground uppercase">Gord</p>
-                        </div>
-                      </div>
-                      
-                      <div className="p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex gap-2 items-start">
-                        <Zap className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-muted-foreground leading-tight italic">
-                          {latestNutrition.recommendations?.[0] || 'Plano otimizado para sua fase atual.'}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl p-4 text-center">
-                      <Flame className="w-6 h-6 text-muted-foreground/30 mb-2" />
-                      <p className="text-[10px] text-muted-foreground mb-2">Gere seu plano nutricional adaptativo</p>
-                      <Link href="/nutrition">
-                        <Button size="sm" className="h-7 text-[10px] px-3 bg-emerald-600 hover:bg-emerald-500">Configurar</Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Training Phase Details - Bottom Row */}
-              {currentPhase && (
-                <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <CheckCircle2 className="w-4 h-4 text-primary" />
-                    </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">RIR Alvo</p>
-                      <p className="text-sm font-bold">{currentPhase.targetRirMin}-{currentPhase.targetRirMax}</p>
+                      <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-widest">1RM estimado</p>
+                      <p className="text-lg font-bold text-amber-400">{latestPR.oneRm.toFixed(1)} kg</p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                      <TrendingUp className="w-4 h-4 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Tensão</p>
-                      <p className="text-sm font-bold">{(Number(currentPhase.volumePctTension) * 100).toFixed(0)}%</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                      <Zap className="w-4 h-4 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Metabólico</p>
-                      <p className="text-sm font-bold">{(Number(currentPhase.volumePctMetabolic) * 100).toFixed(0)}%</p>
-                    </div>
-                  </div>
-
-                  <div className="ml-auto hidden md:block">
-                    <p className="text-[10px] text-muted-foreground leading-tight max-w-[300px] italic">
-                      "A consistência é o que separa os amadores dos atletas. Siga o plano."
+                    <p className="text-xs text-muted-foreground ml-auto">
+                      {format(parseISO(latestPR.date), "d 'de' MMM yyyy", { locale: ptBR })}
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
-          </GlassCard>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-1"
-        >
-          <GlassCard className="h-full flex flex-col justify-between border-primary/20 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] -mr-4 -mt-4 group-hover:scale-110 transition-transform duration-500">
-              <Dumbbell className="w-32 h-32 text-primary rotate-12" />
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-primary mb-6">Resumo Geral</h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <p className="text-3xl font-black tracking-tighter">{overallStats.totalWorkouts}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Treinos Concluídos</p>
-                </div>
-                
-                <div>
-                  <p className="text-3xl font-black tracking-tighter">{overallStats.totalSets}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Séries Totais</p>
-                </div>
-                
-                <div>
-                  <p className="text-3xl font-black tracking-tighter">
-                    {overallStats.totalVolume >= 1000 
-                      ? `${(overallStats.totalVolume / 1000).toFixed(1)}k` 
-                      : overallStats.totalVolume}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Volume Total (kg)</p>
-                </div>
               </div>
-            </div>
-            
-            <div className="mt-8">
-              <Button asChild variant="outline" className="w-full border-primary/20 hover:bg-primary/10 text-xs h-9">
-                <Link href="/measures">Atualizar Medidas</Link>
-              </Button>
-            </div>
-          </GlassCard>
-        </motion.div>
-      </div>
-      
-      {/* Stats Overview */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Treinos', value: overallStats.totalWorkouts, icon: Dumbbell },
-          { label: 'Séries Totais', value: overallStats.totalSets, icon: CheckCircle2 },
-          { label: 'Volume (kg)', value: overallStats.totalVolume >= 1000 
-            ? `${(overallStats.totalVolume / 1000).toFixed(1)}k` 
-            : overallStats.totalVolume, 
-            icon: TrendingUp 
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <GlassCard className="text-center">
-              <stat.icon className="w-6 h-6 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
             </GlassCard>
-          </motion.div>
-        ))}
-      </div>
-      
-      <div className="space-y-8 mt-12">
-        {/* Recent PRs */}
-        <GlassCard>
-          <GlassCardTitle className="mb-4">Recordes Recentes</GlassCardTitle>
-          <div className="grid md:grid-cols-3 gap-3">
-            {prRecords.slice(0, 3).map((pr, index) => (
-              <motion.div
-                key={pr.exerciseId}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + index * 0.1 }}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5"
-              >
-                <div>
-                  <p className="font-medium text-sm">{pr.exerciseName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(parseISO(pr.date), "d 'de' MMM", { locale: ptBR })}
+          )}
+
+          {/* Body stats summary */}
+          {latestMetrics && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard className="p-5 flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-400">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-widest">Peso atual</p>
+                  <p className="text-2xl font-black tracking-tighter">
+                    {latestMetrics.weight_kg}<span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary">{pr.weight}kg</p>
-                  <p className="text-xs text-muted-foreground">x{pr.reps}</p>
+                <Link href="/measures" className="text-xs text-primary hover:underline">Ver →</Link>
+              </GlassCard>
+              <GlassCard className="p-5 flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400">
+                  <BarChart3 className="w-5 h-5" />
                 </div>
-              </motion.div>
-            ))}
-            {prRecords.length === 0 && (
-              <div className="col-span-3 text-center py-4 text-muted-foreground text-sm italic">
-                Nenhum recorde pessoal registrado ainda.
-              </div>
-            )}
-          </div>
-        </GlassCard>
-        
-        {/* Workout History List */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Histórico de Treinos</h2>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase text-muted-foreground font-semibold tracking-widest">Body Fat</p>
+                  <p className="text-2xl font-black tracking-tighter">
+                    {latestMetrics.bf_pct ?? '--'}<span className="text-xs font-normal text-muted-foreground ml-1">%</span>
+                  </p>
+                </div>
+                <Link href="/measures" className="text-xs text-primary hover:underline">Ver →</Link>
+              </GlassCard>
+            </div>
+          )}
+
+          {/* Photo timeline */}
+          <PhotoTimeline />
+
+          {completedSessions.length === 0 && (
+            <GlassCard className="p-8">
+              <EmptyStateGuide
+                icon={Trophy}
+                title="Suas conquistas aparecerão aqui"
+                description="Complete seu primeiro treino para começar a ver seu progresso, streaks e recordes pessoais."
+                action={{ label: 'Iniciar treino', href: '/workout', icon: Dumbbell }}
+              />
+            </GlassCard>
+          )}
+        </TabsContent>
+
+        {/* ────────── TAB 2: TREINOS ────────── */}
+        <TabsContent value="workouts" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Histórico de Treinos
+            </h2>
             <span className="text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded-md border border-white/5">
-              {completedSessions.length} treinos concluídos
+              {completedSessions.length} concluídos
             </span>
           </div>
-          
-          <div className="space-y-3">
-            {completedSessions.map((session, index) => (
+
+          {completedSessions.length === 0 ? (
+            <GlassCard className="p-8">
+              <EmptyStateGuide
+                icon={Dumbbell}
+                title="Nenhum treino concluído"
+                description="Sessões que você completar aparecerão aqui ordenadas cronologicamente."
+                action={{ label: 'Iniciar treino', href: '/workout', icon: Dumbbell }}
+                compact
+              />
+            </GlassCard>
+          ) : (
+            completedSessions.map((session, index) => (
               <motion.div
                 key={session.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: Math.min(index * 0.04, 0.4) }}
               >
                 <Link href={`/workout/${session.id}`}>
-                  <GlassCard hover className="flex items-center justify-between">
+                  <GlassCard hover className="flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{session.name}</h3>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <h3 className="font-semibold">{session.name || 'Treino'}</h3>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {format(parseISO(session.date), "EEE, d 'de' MMM", { locale: ptBR })}
                           </div>
-                          <span>
-                            {session.exercises?.length || 0} exercícios
-                          </span>
+                          <span>{session.exercises?.length ?? 0} exercícios</span>
+                          {(() => {
+                            const tonnage = (session.exercises ?? []).reduce((sum, ex) =>
+                              sum + ex.sets.reduce((s, set) => s + (set.loadKg || 0) * (set.reps || 0), 0), 0)
+                            return tonnage > 0 ? (
+                              <span className="text-primary font-medium">
+                                {tonnage >= 1000 ? `${(tonnage / 1000).toFixed(1)}k` : tonnage} kg
+                              </span>
+                            ) : null
+                          })()}
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-4">
-                      {/* Muscle groups worked */}
+                    <div className="flex items-center gap-3">
                       <div className="hidden md:flex gap-1">
                         {session.exercises && [...new Set(session.exercises.map(e => getExercisePrimaryMuscle(e.exerciseId)))]
                           .slice(0, 3)
                           .map(muscle => (
-                            <span
-                              key={muscle}
-                              className={cn(
-                                "text-xs px-2 py-0.5 rounded-full",
-                                muscleGroupColors[muscle],
-                                "text-white/90"
-                              )}
-                            >
+                            <span key={muscle} className={cn('text-xs px-2 py-0.5 rounded-full text-white/90', muscleGroupColors[muscle])}>
                               {muscleGroupLabels[muscle]}
                             </span>
                           ))
                         }
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                     </div>
                   </GlassCard>
                 </Link>
               </motion.div>
-            ))}
-            
-            {completedSessions.length === 0 && (
-              <GlassCard className="text-center py-12">
-                <Dumbbell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-muted-foreground">Nenhum treino concluído ainda</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Complete seu primeiro treino para vê-lo aqui
-                </p>
-              </GlassCard>
-            )}
+            ))
+          )}
+        </TabsContent>
+
+        {/* ────────── TAB 3: ANÁLISE ────────── */}
+        <TabsContent value="analysis" className="space-y-6">
+          {/* Week picker */}
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)} className="rounded-full">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="text-center">
+              <p className="font-semibold">
+                {format(selectedWeek.start, "d 'de' MMM", { locale: ptBR })}
+                {' – '}
+                {format(selectedWeek.end, "d 'de' MMM yyyy", { locale: ptBR })}
+              </p>
+              {weekOffset === 0 && <p className="text-xs text-primary">Esta semana</p>}
+              {weekOffset < 0 && <p className="text-xs text-muted-foreground">{Math.abs(weekOffset)} semana{Math.abs(weekOffset) > 1 ? 's' : ''} atrás</p>}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setWeekOffset(o => Math.min(o + 1, 0))}
+              disabled={weekOffset >= 0}
+              className="rounded-full"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-        </div>
-      </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <GlassCard className="text-center p-4">
+              <p className="text-3xl font-black text-primary">{weekSessions.length}</p>
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">Treinos</p>
+            </GlassCard>
+            <GlassCard className="text-center p-4">
+              {(() => {
+                const tonnage = weekSessions.reduce((sum, s) =>
+                  sum + (s.exercises ?? []).reduce((es, ex) =>
+                    es + ex.sets.reduce((ss, set) => ss + (set.loadKg || 0) * (set.reps || 0), 0), 0), 0)
+                return <>
+                  <p className="text-3xl font-black text-primary">
+                    {tonnage >= 1000 ? `${(tonnage / 1000).toFixed(1)}k` : tonnage}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">Volume (kg)</p>
+                </>
+              })()}
+            </GlassCard>
+          </div>
+
+          {/* Volume por músculo */}
+          {Object.keys(weekVolumeByMuscle).length > 0 ? (
+            <GlassCard className="space-y-3 p-5">
+              <GlassCardTitle>Volume por Músculo</GlassCardTitle>
+              {(Object.entries(weekVolumeByMuscle) as [keyof typeof muscleGroupLabels, number][])
+                .sort(([, a], [, b]) => b - a)
+                .map(([muscle, sets]) => {
+                  const pct = Math.min((sets / MRV_THRESHOLD) * 100, 100)
+                  const isAboveMrv = sets >= MRV_THRESHOLD
+                  const isBelowMev = sets < MEV_THRESHOLD && sets > 0
+                  return (
+                    <div key={muscle}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">{muscleGroupLabels[muscle] ?? muscle}</span>
+                        <span className={cn(
+                          'font-semibold tabular-nums',
+                          isAboveMrv ? 'text-red-400' : isBelowMev ? 'text-amber-400' : 'text-primary'
+                        )}>
+                          {sets.toFixed(1)} séries
+                          {isAboveMrv && ' ⚠️'}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-full rounded-full transition-all',
+                            isAboveMrv ? 'bg-red-400' : 'bg-gradient-to-r from-primary to-emerald-400'
+                          )}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              <p className="text-[10px] text-muted-foreground/60 pt-1">MEV: 10 séries · MRV: 20 séries</p>
+            </GlassCard>
+          ) : (
+            weekSessions.length === 0 && (
+              <GlassCard className="p-8">
+                <EmptyStateGuide
+                  icon={Activity}
+                  title="Sem dados nesta semana"
+                  description="Nenhum treino registrado no período selecionado. Use as setas para navegar."
+                  compact
+                />
+              </GlassCard>
+            )
+          )}
+
+          {/* Tonelagem vs Semana Anterior */}
+          {exerciseComparison.length > 0 && (
+            <GlassCard className="space-y-3 p-5">
+              <GlassCardTitle>Tonelagem vs Semana Anterior</GlassCardTitle>
+              <div className="space-y-2">
+                {exerciseComparison.map(ex => (
+                  <div key={ex.exerciseId} className="flex items-center justify-between py-1 border-b border-white/5 last:border-0">
+                    <p className="text-sm truncate max-w-[55%]">{ex.name}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {ex.current >= 1000 ? `${(ex.current / 1000).toFixed(1)}k` : ex.current.toFixed(0)} kg
+                      </span>
+                      {ex.delta !== null ? (
+                        <span className={cn(
+                          'flex items-center gap-0.5 text-xs font-semibold tabular-nums',
+                          ex.delta > 0 ? 'text-emerald-400' : ex.delta < 0 ? 'text-red-400' : 'text-muted-foreground'
+                        )}>
+                          {ex.delta > 0 ? <ArrowUp className="w-3 h-3" /> : ex.delta < 0 ? <ArrowDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                          {Math.abs(ex.delta).toFixed(0)}%
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50">novo</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+
+          {/* PRs grid */}
+          {prRecords.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Award className="w-4 h-4" />
+                Recordes Pessoais ({prRecords.length})
+              </h3>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {prRecords.slice(0, 12).map((pr, index) => (
+                  <motion.div
+                    key={pr.exerciseId}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                  >
+                    <GlassCard className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-sm leading-tight">{pr.exerciseName}</p>
+                        <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                      </div>
+                      <div className="flex items-end gap-3">
+                        <div>
+                          <p className="text-2xl font-black text-primary">{pr.weight}<span className="text-sm font-normal text-muted-foreground ml-0.5">kg</span></p>
+                          <p className="text-xs text-muted-foreground">× {pr.reps} reps</p>
+                        </div>
+                        <div className="ml-auto text-right">
+                          <p className="text-xs text-muted-foreground">1RM estimado</p>
+                          <p className="text-sm font-bold text-amber-400">{pr.oneRm.toFixed(1)} kg</p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">
+                        {format(parseISO(pr.date), "d 'de' MMM yyyy", { locale: ptBR })}
+                      </p>
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
