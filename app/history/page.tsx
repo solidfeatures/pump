@@ -24,6 +24,7 @@ import { BodyMetric } from '@/lib/db/measures'
 import { ExerciseMuscle } from '@/lib/types'
 import { getLatestMetricsAction } from '@/app/actions'
 import { calculateWeeklyVolumeByMuscle, MRV_THRESHOLD, MEV_THRESHOLD } from '@/lib/periodization'
+import { TermTooltip } from '@/components/term-tooltip'
 
 export default function HistoryPage() {
   const { sessions, getPRRecords, exercises } = useWorkout()
@@ -498,7 +499,9 @@ export default function HistoryPage() {
                     </div>
                   )
                 })}
-              <p className="text-[10px] text-muted-foreground/60 pt-1">MEV: 10 séries · MRV: 20 séries</p>
+              <p className="text-[10px] text-muted-foreground/60 pt-1">
+                <TermTooltip term="MEV" className="text-[10px]" />: 10 séries · <TermTooltip term="MRV" className="text-[10px]" />: 20 séries
+              </p>
             </GlassCard>
           ) : (
             weekSessions.length === 0 && (

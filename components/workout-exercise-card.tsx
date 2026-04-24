@@ -10,6 +10,7 @@ import { ChevronDown, ChevronUp, Info, Sparkles, Clock, Plus, Trash2, Youtube, E
 import { useState } from 'react'
 import { cn, extractYouTubeId } from '@/lib/utils'
 import { useWorkout } from '@/lib/workout-context'
+import { TermTooltip } from '@/components/term-tooltip'
 import { formatRestTime, getRestTimeRange } from '@/lib/periodization'
 import { Button } from '@/components/ui/button'
 import { getLastPerformanceAction } from '@/app/actions'
@@ -258,8 +259,8 @@ export function WorkoutExerciseCard({
                 <div className="w-7 text-center" title="Categoria da série">Cat</div>
                 <div className="text-center">Carga</div>
                 <div className="text-center">Reps</div>
-                <div className="text-center text-amber-400/70">RPE</div>
-                <div className="text-center text-sky-400/70">RIR</div>
+                <div className="text-center text-amber-400/70"><TermTooltip term="RPE" className="text-[10px] text-amber-400/70" /></div>
+                <div className="text-center text-sky-400/70"><TermTooltip term="RIR" className="text-[10px] text-sky-400/70" /></div>
                 <div className="w-7" />
                 <div className="w-7" />
               </div>

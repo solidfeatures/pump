@@ -36,13 +36,13 @@
 
 ### P2 — Usabilidade Moderada
 
-- [ ] **U6** · Termos técnicos sem explicação (MEV, MRV, RIR, RPE, mesociclo): adicionar tooltips contextuais  
-- [ ] **U7** · Menu "AI Base" sem subtítulo ou ícone claro — adicionar descrição "Base de Conhecimento da IA"  
+- [x] **U6** · Termos técnicos sem explicação (MEV, MRV, RIR, RPE, mesociclo): adicionar tooltips contextuais  
+- [x] **U7** · Menu "AI Base" sem subtítulo ou ícone claro — adicionar descrição "Base de Conhecimento da IA"  
 - [x] **U8** · Nutrition: identidade visual neon/gamer destoa do design system — alinhar ao glassmorphism do app  
 - [x] **U9** · Workout list: cards sem nome de sessão — exibir nome (ex.: "Upper A", "Lower B")  
-- [ ] **U10** · Profile: `<title>` da aba do browser mostra URL em vez do nome da app  
+- [x] **U10** · Profile: `<title>` da aba do browser mostra URL em vez do nome da app  
 - [ ] **U11** · Sidebar: indicador de fase coberto pelo avatar do usuário — reposicionar  
-- [ ] **U12** · AI Base: categorias de filtro cortadas horizontalmente — scroll indicator ou wrap  
+- [x] **U12** · AI Base: categorias de filtro cortadas horizontalmente — scroll indicator ou wrap  
 
 ### P3 — Polimento Visual
 

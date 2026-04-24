@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Pencil, Trash2, BookOpen, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, BookOpen, Search, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import type { CoachingRule, CreateRuleInput } from '@/lib/db/coaching-rules'
-import { createRuleAction, updateRuleAction, toggleRuleAction, deleteRuleAction } from './actions'
+import { createRuleAction, updateRuleAction, toggleRuleAction, deleteRuleAction, resetRulesToDefaultAction } from './actions'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -27,6 +27,7 @@ const CATEGORIES = [
   { value: 'technique',         label: 'Técnica',          color: 'bg-pink-500/15 text-pink-300 border-pink-500/25' },
   { value: 'weak_points',       label: 'Pontos Fracos',    color: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/25' },
   { value: 'nutrition_context', label: 'Nutrição',         color: 'bg-teal-500/15 text-teal-300 border-teal-500/25' },
+  { value: 'experience_level',  label: 'Nível/Experiência', color: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/25' },
   { value: 'personal',          label: 'Pessoal',          color: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/25' },
 ]
 
@@ -377,6 +378,7 @@ export function RulesClient({ initialRules }: { initialRules: CoachingRule[] }) 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<CoachingRule | null>(null)
   const [deletingRule, setDeletingRule] = useState<CoachingRule | null>(null)
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // ── Derived state ──────────────────────────────────────────────────────────
@@ -447,9 +449,19 @@ export function RulesClient({ initialRules }: { initialRules: CoachingRule[] }) 
       const ok = await deleteRuleAction(id)
       if (!ok) setRules(prev => {
         if (prev.find(r => r.id === id)) return prev
-        // restore on failure — we don't have the original anymore, do a refresh approach
         return prev
       })
+    })
+  }
+
+  function handleReset() {
+    setResetConfirmOpen(false)
+    startTransition(async () => {
+      const result = await resetRulesToDefaultAction()
+      if (result) {
+        // Reload page to reflect fresh rules from DB
+        window.location.reload()
+      }
     })
   }
 
@@ -468,10 +480,22 @@ export function RulesClient({ initialRules }: { initialRules: CoachingRule[] }) 
             {rules.length} regras · {activeCount} ativas na view atual
           </p>
         </div>
-        <Button onClick={openAdd} size="sm" className="shrink-0">
-          <Plus className="w-4 h-4 mr-1.5" />
-          Nova Regra
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setResetConfirmOpen(true)}
+            disabled={isPending}
+            className="border-white/10 text-muted-foreground hover:text-amber-400 hover:border-amber-400/30"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            Restaurar Padrões
+          </Button>
+          <Button onClick={openAdd} size="sm" className="shrink-0">
+            <Plus className="w-4 h-4 mr-1.5" />
+            Nova Regra
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -485,8 +509,9 @@ export function RulesClient({ initialRules }: { initialRules: CoachingRule[] }) 
         />
       </div>
 
-      {/* Category tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 scrollbar-none">
+      {/* Category tabs — scrollable with fade indicator */}
+      <div className="relative mb-4">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => setActiveCategory('todas')}
           className={cn(
@@ -517,6 +542,9 @@ export function RulesClient({ initialRules }: { initialRules: CoachingRule[] }) 
             </button>
           )
         })}
+        </div>
+        {/* Right fade — signals more scrollable content */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background to-transparent" />
       </div>
 
       {/* Rules list */}
@@ -571,6 +599,36 @@ export function RulesClient({ initialRules }: { initialRules: CoachingRule[] }) 
               className="bg-red-500/80 hover:bg-red-500 text-white border-0"
             >
               Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset to Defaults Confirmation */}
+      <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <AlertDialogContent className="glass border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restaurar todas as regras para o padrão?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Esta ação irá <strong>apagar todas as regras atuais</strong> (incluindo qualquer customização pessoal)
+                e reinstalar as <strong>regras padrão do Método Lamadrid</strong>.
+              </span>
+              <span className="block text-amber-400/80">
+                Regras pessoais adicionadas por você serão perdidas. Esta ação não pode ser desfeita.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="glass border-white/10" disabled={isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReset}
+              disabled={isPending}
+              className="bg-amber-500/80 hover:bg-amber-500 text-white border-0"
+            >
+              {isPending ? 'Restaurando...' : 'Sim, restaurar padrões'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -109,8 +109,13 @@ export function Navigation() {
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
-            <BookOpen className={cn('w-5 h-5 relative z-10', pathname.startsWith('/admin') && 'text-primary-foreground')} />
-            <span className="relative z-10">{t('nav.aiBase')}</span>
+            <BookOpen className={cn('w-5 h-5 relative z-10 shrink-0', pathname.startsWith('/admin') && 'text-primary-foreground')} />
+            <div className="relative z-10 min-w-0">
+              <p className="text-sm font-medium leading-tight">{t('nav.aiBase')}</p>
+              <p className={cn('text-[10px] leading-tight', pathname.startsWith('/admin') ? 'text-primary-foreground/70' : 'text-muted-foreground/60')}>
+                Regras do Treinador
+              </p>
+            </div>
           </Link>
         </div>
 

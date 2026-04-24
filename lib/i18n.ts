@@ -10,7 +10,7 @@ const pt = {
   'nav.measures': 'Medidas',
   'nav.nutrition': 'Nutrição',
   'nav.profile': 'Perfil',
-  'nav.aiBase': 'Base IA',
+  'nav.aiBase': 'Base de IA',
   // Common
   'common.save': 'Salvar',
   'common.saving': 'Salvando...',
@@ -140,7 +140,7 @@ const es: Record<keyof typeof pt, string> = {
   'nav.measures': 'Medidas',
   'nav.nutrition': 'Nutrición',
   'nav.profile': 'Perfil',
-  'nav.aiBase': 'Base IA',
+  'nav.aiBase': 'Base de IA',
   'common.save': 'Guardar',
   'common.saving': 'Guardando...',
   'common.cancel': 'Cancelar',
