@@ -2,7 +2,8 @@
 
 import { motion } from 'framer-motion'
 import { PlannedSession, PlannedExercise, Exercise } from '@/lib/types'
-import { muscleGroupLabels, muscleGroupColors, getExercisePrimaryMuscle } from '@/lib/mock-data'
+import { muscleGroupLabels, muscleGroupColors } from '@/lib/mock-data'
+import type { MuscleGroup } from '@/lib/types'
 import { Dumbbell, Edit2, ChevronRight, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -26,8 +27,9 @@ export function SessionPlanCard({
 }: SessionPlanCardProps) {
   const totalSets = exercises.reduce((sum, ex) => sum + ex.setsCount, 0)
   
-  // Get unique muscle groups
-  const muscleGroups = [...new Set(exercises.map(e => getExercisePrimaryMuscle(e.exerciseId)))]
+  const muscleGroups = [...new Set(
+    exercises.map(e => (e.exercise?.muscles?.find(m => m.seriesFactor >= 1.0)?.muscleGroup ?? 'chest') as MuscleGroup)
+  )]
   
   return (
     <motion.div

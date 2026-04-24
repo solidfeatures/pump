@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkout } from '@/lib/workout-context'
 import { Exercise, MuscleGroup } from '@/lib/types'
-import { muscleGroupLabels, muscleGroupColors, getExercisePrimaryMuscle } from '@/lib/mock-data'
+import { muscleGroupLabels, muscleGroupColors } from '@/lib/mock-data'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Plus, Minus, Check } from 'lucide-react'
+import { Search, Plus, Minus, Check, Youtube } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface AddExerciseModalProps {
@@ -34,7 +34,7 @@ export function AddExerciseModal({ open, onClose, sessionId }: AddExerciseModalP
       const matchesSearch = ex.name.toLowerCase().includes(search.toLowerCase()) ||
         ex.movementPattern?.toLowerCase().includes(search.toLowerCase()) ||
         ex.classification?.toLowerCase().includes(search.toLowerCase())
-      const exerciseMuscle = getExercisePrimaryMuscle(ex.id)
+      const exerciseMuscle = (ex.muscles?.find(m => m.seriesFactor >= 1.0)?.muscleGroup ?? 'chest') as MuscleGroup
       const matchesMuscle = !selectedMuscle || exerciseMuscle === selectedMuscle
       return matchesSearch && matchesMuscle
     })
@@ -102,7 +102,7 @@ export function AddExerciseModal({ open, onClose, sessionId }: AddExerciseModalP
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
           <AnimatePresence mode="popLayout">
             {filteredExercises.map((exercise, index) => {
-              const muscleGroup = getExercisePrimaryMuscle(exercise.id)
+              const muscleGroup = (exercise.muscles?.find(m => m.seriesFactor >= 1.0)?.muscleGroup ?? 'chest') as MuscleGroup
               return (
                 <motion.button
                   key={exercise.id}
@@ -121,10 +121,15 @@ export function AddExerciseModal({ open, onClose, sessionId }: AddExerciseModalP
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{exercise.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{exercise.name}</p>
+                        {exercise.videoUrl && (
+                          <Youtube className="w-3.5 h-3.5 text-red-400 shrink-0" title="Tutorial disponível" />
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span 
+                        <span
                           className={cn(
                             "text-xs px-2 py-0.5 rounded-full",
                             muscleGroupColors[muscleGroup],
@@ -139,7 +144,7 @@ export function AddExerciseModal({ open, onClose, sessionId }: AddExerciseModalP
                       </div>
                     </div>
                     {selectedExercise?.id === exercise.id && (
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center ml-2 shrink-0">
                         <Check className="w-3 h-3 text-primary-foreground" />
                       </div>
                     )}

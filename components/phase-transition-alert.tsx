@@ -45,6 +45,7 @@ export function PhaseTransitionAlert() {
   const [dismissed, setDismissed] = useState(false)
 
   const evaluation = useMemo(() => {
+    if (!currentPhase) return { shouldTransition: false, trigger: null, message: '' }
     const weeklyVolume = getWeeklyVolumeByMuscle()
 
     // Sample progression statuses from the first 3 exercises

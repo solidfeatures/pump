@@ -16,7 +16,8 @@ import {
 import { format, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
-import { muscleGroupLabels, muscleGroupColors, getExercisePrimaryMuscle } from '@/lib/mock-data'
+import { muscleGroupLabels, muscleGroupColors } from '@/lib/mock-data'
+import type { MuscleGroup } from '@/lib/types'
 import { PhotoTimeline } from '@/components/photo-timeline'
 import { cn } from '@/lib/utils'
 import { BodyMetric } from '@/lib/db/measures'
@@ -360,7 +361,7 @@ export default function HistoryPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="hidden md:flex gap-1">
-                        {session.exercises && [...new Set(session.exercises.map(e => getExercisePrimaryMuscle(e.exerciseId)))]
+                        {session.exercises && [...new Set(session.exercises.map(e => (e.exercise?.muscles?.find((m: { seriesFactor: number; muscleGroup: string }) => m.seriesFactor >= 1.0)?.muscleGroup ?? 'chest') as MuscleGroup))]
                           .slice(0, 3)
                           .map(muscle => (
                             <span key={muscle} className={cn('text-xs px-2 py-0.5 rounded-full text-white/90', muscleGroupColors[muscle])}>

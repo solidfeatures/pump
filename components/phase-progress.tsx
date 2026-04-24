@@ -19,6 +19,14 @@ const PHASE_META: Record<PhaseType, { label: string; color: string; desc: string
 export function PhaseProgress() {
   const { currentPhase } = useWorkout()
 
+  if (!currentPhase) {
+    return (
+      <GlassCard delay={0.3} className="flex items-center justify-center p-6">
+        <p className="text-sm text-muted-foreground">Nenhuma fase ativa. Gere um plano primeiro.</p>
+      </GlassCard>
+    )
+  }
+
   const currentWeek = 1
   const totalWeeks = currentPhase.durationWeeks || 4
   const progress = Math.min((currentWeek / totalWeeks) * 100, 100)

@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { GlassCard } from '@/components/glass-card'
 import { SetInput } from '@/components/set-input'
 import { WorkoutExercise } from '@/lib/types'
-import { muscleGroupLabels, muscleGroupColors, getExercisePrimaryMuscle } from '@/lib/mock-data'
+import { muscleGroupLabels, muscleGroupColors } from '@/lib/mock-data'
+import type { MuscleGroup } from '@/lib/types'
 import { ChevronDown, ChevronUp, Info, Sparkles, Clock, Plus, Trash2, Youtube, ExternalLink, TrendingUp, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn, extractYouTubeId } from '@/lib/utils'
 import { useWorkout } from '@/lib/workout-context'
 import { formatRestTime, getRestTimeRange } from '@/lib/periodization'
 import { Button } from '@/components/ui/button'
@@ -21,19 +22,6 @@ interface WorkoutExerciseCardProps {
   isActive: boolean
 }
 
-/** Extract YouTube video ID from any YouTube URL */
-function getYouTubeId(url: string | null | undefined): string | null {
-  if (!url) return null
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-  ]
-  for (const re of patterns) {
-    const m = url.match(re)
-    if (m) return m[1]
-  }
-  return null
-}
 
 export function WorkoutExerciseCard({
   sessionId,
@@ -61,13 +49,13 @@ export function WorkoutExerciseCard({
   const totalSets     = exercise.sets.length
   const isComplete    = completedSets === totalSets && totalSets > 0
 
-  const muscleGroup = getExercisePrimaryMuscle(exercise.exerciseId)
+  const muscleGroup = (exercise.exercise?.muscles?.find(m => m.seriesFactor >= 1.0)?.muscleGroup ?? 'chest') as MuscleGroup
 
   const targetRepsMax   = planned?.repsMax ?? planned?.repsMin ?? undefined
   const targetRestRange = targetRepsMax ? getRestTimeRange(targetRepsMax) : undefined
 
   const videoUrl  = exercise.exercise.videoUrl
-  const videoId   = getYouTubeId(videoUrl)
+  const videoId   = extractYouTubeId(videoUrl)
   const hasVideo  = !!videoId
 
   const currentTonnage = exercise.sets.reduce((sum, s) => sum + ((s.loadKg || 0) * (s.reps || 0)), 0)

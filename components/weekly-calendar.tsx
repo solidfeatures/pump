@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import { useWorkout } from '@/lib/workout-context'
-import { getWeekDates } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 import { CheckCircle2, Circle, Dumbbell } from 'lucide-react'
 import Link from 'next/link'
@@ -10,10 +9,23 @@ import { format, parseISO, isToday } from 'date-fns'
 
 const dayLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
+function currentWeekDates(): string[] {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(d)
+  monday.setDate(diff)
+  return Array.from({ length: 7 }, (_, i) => {
+    const dt = new Date(monday)
+    dt.setDate(monday.getDate() + i)
+    return dt.toISOString().split('T')[0]
+  })
+}
+
 export function WeeklyCalendar() {
   const { sessions } = useWorkout()
-  
-  const weekDates = getWeekDates()
+
+  const weekDates = currentWeekDates()
   const weekSessions = weekDates.map((date, index) => {
     const session = sessions.find(s => s.date === date)
     return {
