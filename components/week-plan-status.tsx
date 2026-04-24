@@ -314,8 +314,9 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
           >
             {hasPlan && sessions.length > 0 ? (
               <div className="border-t border-white/10 p-4 space-y-3">
-                {/* Day columns */}
-                <div className="grid grid-cols-7 gap-2">
+                {/* Day columns — horizontal scroll on mobile */}
+                <div className="overflow-x-auto -mx-4 px-4 pb-1">
+                <div className="grid grid-cols-7 gap-2 min-w-[480px]">
                   {weekDays.map(({ dow, date, ds }) => {
                     const session = sessionByDow.get(dow)
                     const isToday = ds === today
@@ -395,6 +396,7 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
                       </motion.div>
                     )
                   })}
+                </div>
                 </div>
               </div>
             ) : (

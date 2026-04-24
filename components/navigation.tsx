@@ -2,12 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Home, Calendar, Dumbbell, BarChart3, Zap, BookOpen, Ruler, Utensils, User } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Home, Calendar, Dumbbell, BarChart3, Zap, BookOpen,
+  Ruler, Utensils, User, MoreHorizontal, X,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePreferences } from '@/lib/preferences-context'
 import { PreferencesPanel } from '@/components/preferences-panel'
 import type { TranslationKey } from '@/lib/i18n'
+import { useState } from 'react'
 
 const navItems: { href: string; labelKey: TranslationKey; icon: React.ElementType }[] = [
   { href: '/',          labelKey: 'nav.home',      icon: Home },
@@ -19,13 +23,25 @@ const navItems: { href: string; labelKey: TranslationKey; icon: React.ElementTyp
   { href: '/profile',   labelKey: 'nav.profile',   icon: User },
 ]
 
+// 5 primary items shown in bottom bar; the rest go into the "Mais" drawer
+const PRIMARY_HREFS = ['/', '/plan', '/workout', '/history', '/profile']
+const primaryItems = navItems.filter(i => PRIMARY_HREFS.includes(i.href))
+const secondaryItems = [
+  ...navItems.filter(i => !PRIMARY_HREFS.includes(i.href)),
+  { href: '/admin/rules', labelKey: 'nav.aiBase' as TranslationKey, icon: BookOpen },
+]
+
 export function Navigation() {
   const pathname = usePathname()
   const { t } = usePreferences()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col glass border-r border-white/5 z-50">
         <div className="p-6 border-b border-white/5">
           <Link href="/" className="flex items-center gap-3">
@@ -45,21 +61,19 @@ export function Navigation() {
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href ||
-                (item.href !== '/' && pathname.startsWith(item.href))
-
+              const active = isActive(item.href)
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
                       'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative',
-                      isActive
+                      active
                         ? 'text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                     )}
                   >
-                    {isActive && (
+                    {active && (
                       <motion.div
                         layoutId="nav-active"
                         className="absolute inset-0 bg-primary rounded-xl"
@@ -67,7 +81,7 @@ export function Navigation() {
                         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                       />
                     )}
-                    <item.icon className={cn('w-5 h-5 relative z-10', isActive && 'text-primary-foreground')} />
+                    <item.icon className={cn('w-5 h-5 relative z-10', active && 'text-primary-foreground')} />
                     <span className="relative z-10">{t(item.labelKey)}</span>
                   </Link>
                 </li>
@@ -100,7 +114,6 @@ export function Navigation() {
           </Link>
         </div>
 
-        {/* Preferences inline trigger */}
         <div className="px-4 pb-2">
           <PreferencesPanel inline />
         </div>
@@ -122,43 +135,110 @@ export function Navigation() {
         </div>
       </aside>
 
-      {/* Mobile Bottom Navigation */}
+      {/* ── Mobile Bottom Bar (5 primary items + Mais) ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/5 z-50 safe-area-pb">
-        <ul className="flex items-center justify-around py-2">
-          {[...navItems, { href: '/admin/rules', labelKey: 'nav.aiBase' as TranslationKey, icon: BookOpen }].map((item) => {
-            const isActive = pathname === item.href ||
-              (item.href !== '/' && pathname.startsWith(item.href))
-
+        <ul className="flex items-center justify-around py-2 px-1">
+          {primaryItems.map((item) => {
+            const active = isActive(item.href)
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={() => setDrawerOpen(false)}
                   className={cn(
-                    'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative',
-                    isActive ? 'text-primary' : 'text-muted-foreground'
+                    'flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all relative',
+                    active ? 'text-primary' : 'text-muted-foreground'
                   )}
                 >
-                  {isActive && (
+                  {active && (
                     <motion.div
                       layoutId="nav-active-mobile"
-                      className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
+                      className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full"
                       initial={false}
                       transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                     />
                   )}
                   <item.icon className="w-5 h-5" />
-                  <span className="text-xs">{t(item.labelKey)}</span>
+                  <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
                 </Link>
               </li>
             )
           })}
+
+          {/* Mais button */}
+          <li>
+            <button
+              onClick={() => setDrawerOpen(o => !o)}
+              className={cn(
+                'flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all',
+                drawerOpen ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              {drawerOpen
+                ? <X className="w-5 h-5" />
+                : <MoreHorizontal className="w-5 h-5" />
+              }
+              <span className="text-[10px] font-medium">Mais</span>
+            </button>
+          </li>
         </ul>
       </nav>
 
-      {/* Mobile floating preferences button */}
-      <div className="md:hidden">
-        <PreferencesPanel />
-      </div>
+      {/* ── Mobile "Mais" Drawer ── */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="drawer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="md:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setDrawerOpen(false)}
+            />
+
+            {/* Sheet */}
+            <motion.div
+              key="drawer-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+              className="md:hidden fixed bottom-[4.5rem] left-0 right-0 z-50 glass border-t border-white/10 rounded-t-2xl p-4"
+            >
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+
+              <ul className="grid grid-cols-3 gap-2 mb-4">
+                {secondaryItems.map((item) => {
+                  const active = isActive(item.href)
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setDrawerOpen(false)}
+                        className={cn(
+                          'flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all text-center',
+                          active
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10'
+                        )}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span className="text-xs font-medium leading-tight">{t(item.labelKey)}</span>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+
+              <PreferencesPanel inline />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </>
   )
 }

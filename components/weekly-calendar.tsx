@@ -38,7 +38,8 @@ export function WeeklyCalendar() {
   })
   
   return (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="overflow-x-auto -mx-1">
+    <div className="grid grid-cols-7 gap-2 min-w-[420px]">
       {weekSessions.map((day, index) => (
         <motion.div
           key={day.date}
@@ -93,6 +94,7 @@ export function WeeklyCalendar() {
           )}
         </motion.div>
       ))}
+    </div>
     </div>
   )
 }

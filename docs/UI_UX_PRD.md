@@ -28,7 +28,7 @@
 
 ### P1 — Usabilidade Severa
 
-- [ ] **U1** · Responsividade mobile: sidebar fixa colapsa layout em 375px — hamburger menu + single-column layout  
+- [x] **U1** · Responsividade mobile: sidebar fixa colapsa layout em 375px — hamburger menu + single-column layout  
 - [x] **U2** · Idioma inconsistente: `FRIDAY`, menu items em inglês, `STREAK`, `BODY FAT`, `Split` — padronizar para português  
 - [x] **U3** · Workout player: título da sessão ausente no header — mostrar nome da sessão  
 - [ ] **U4** · Home "Hoje" dia de descanso: não mostra próximo treino programado nem atalho para o plano  
