@@ -5,8 +5,10 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import { Navigation } from '@/components/navigation'
 import { WorkoutProvider } from '@/lib/workout-context'
+import { PreferencesProvider } from '@/lib/preferences-context'
 import { getCurrentPhase, getExercises } from '@/lib/db'
 import { getPlannedSessionsByPhase } from '@/lib/db/planned'
+import { getWorkoutSessionsInRange, buildExercisesFromSets } from '@/lib/db/sessions'
 
 
 const inter = Inter({
@@ -51,39 +53,61 @@ export default async function RootLayout({
     initialPlannedExercises = initialPlannedSessions.flatMap(s => s.exercises || [])
   }
 
-  const fs = require('fs')
-  fs.appendFileSync('debug_layout.log', `[V2 - ${new Date().toISOString()}] Phase: ${phase?.name} (${phase?.id}), Sessions: ${initialPlannedSessions.length}\n`)
+  // Load real completed sessions from the last 12 weeks
+  const eightWeeksAgo = new Date()
+  eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 84)
+  const rawDbSessions = await getWorkoutSessionsInRange(
+    eightWeeksAgo.toISOString().split('T')[0],
+    new Date().toISOString().split('T')[0]
+  ).catch(() => [])
 
-  console.log('[RootLayout] Loaded data:', { 
-    phase: phase?.name, 
-    sessionsCount: initialPlannedSessions.length,
-    exercisesCount: exercises.length 
-  })
+  // Enrich each session with grouped exercise data for the UI
+  const initialDbSessions = rawDbSessions.map(s => ({
+    ...s,
+    status: 'completed' as const,
+    exercises: buildExercisesFromSets(s, exercises),
+  }))
 
   return (
-    <html lang="pt-BR" className="bg-background">
+    <html lang="pt-BR" className="bg-background" data-theme="dark" suppressHydrationWarning>
+      <head>
+        {/* Anti-flash: read theme/locale from localStorage before first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+              var t=localStorage.getItem('pump-theme')||'dark';
+              var l=localStorage.getItem('pump-locale')||'pt';
+              document.documentElement.setAttribute('data-theme',t);
+              document.documentElement.lang=l==='pt'?'pt-BR':l;
+            }catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased ambient-bg min-h-screen overflow-x-hidden`}>
-        <WorkoutProvider 
-          initialPhase={phase} 
+        <WorkoutProvider
+          initialPhase={phase}
           initialExercises={exercises}
           initialPlannedSessions={initialPlannedSessions}
           initialPlannedExercises={initialPlannedExercises}
+          initialDbSessions={initialDbSessions}
         >
-          <Navigation />
-          <main className="pb-20 md:pb-0 md:pl-64 overflow-x-hidden">
-            {children}
-          </main>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: 'oklch(0.16 0.005 285 / 0.9)',
-                border: '1px solid oklch(1 0 0 / 0.1)',
-                backdropFilter: 'blur(16px)',
-                color: 'oklch(0.98 0 0)',
-              },
-            }}
-          />
+          <PreferencesProvider>
+            <Navigation />
+            <main className="pb-20 md:pb-0 md:pl-64 overflow-x-hidden">
+              {children}
+            </main>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  backdropFilter: 'blur(16px)',
+                  color: 'var(--foreground)',
+                },
+              }}
+            />
+          </PreferencesProvider>
         </WorkoutProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

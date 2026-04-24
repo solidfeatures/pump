@@ -5,20 +5,24 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Home, Calendar, Dumbbell, BarChart3, Zap, BookOpen, Ruler, Utensils, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { usePreferences } from '@/lib/preferences-context'
+import { PreferencesPanel } from '@/components/preferences-panel'
+import type { TranslationKey } from '@/lib/i18n'
 
-const navItems = [
-  { href: '/', label: 'Início', icon: Home },
-  { href: '/plan', label: 'Plano', icon: Calendar },
-  { href: '/workout', label: 'Treino', icon: Dumbbell },
-  { href: '/history', label: 'Histórico', icon: BarChart3 },
-  { href: '/measures', label: 'Medidas', icon: Ruler },
-  { href: '/nutrition', label: 'Nutrição', icon: Utensils },
-  { href: '/profile', label: 'Perfil', icon: User },
+const navItems: { href: string; labelKey: TranslationKey; icon: React.ElementType }[] = [
+  { href: '/',          labelKey: 'nav.home',      icon: Home },
+  { href: '/plan',      labelKey: 'nav.plan',      icon: Calendar },
+  { href: '/workout',   labelKey: 'nav.workout',   icon: Dumbbell },
+  { href: '/history',   labelKey: 'nav.history',   icon: BarChart3 },
+  { href: '/measures',  labelKey: 'nav.measures',  icon: Ruler },
+  { href: '/nutrition', labelKey: 'nav.nutrition', icon: Utensils },
+  { href: '/profile',   labelKey: 'nav.profile',   icon: User },
 ]
 
 export function Navigation() {
   const pathname = usePathname()
-  
+  const { t } = usePreferences()
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -37,22 +41,22 @@ export function Navigation() {
             </div>
           </Link>
         </div>
-        
-        <nav className="flex-1 p-4">
+
+        <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || 
+              const isActive = pathname === item.href ||
                 (item.href !== '/' && pathname.startsWith(item.href))
-              
+
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative",
-                      isActive 
-                        ? "text-primary-foreground" 
-                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all relative',
+                      isActive
+                        ? 'text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                     )}
                   >
                     {isActive && (
@@ -60,27 +64,27 @@ export function Navigation() {
                         layoutId="nav-active"
                         className="absolute inset-0 bg-primary rounded-xl"
                         initial={false}
-                        transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                       />
                     )}
-                    <item.icon className={cn("w-5 h-5 relative z-10", isActive && "text-primary-foreground")} />
-                    <span className="relative z-10">{item.label}</span>
+                    <item.icon className={cn('w-5 h-5 relative z-10', isActive && 'text-primary-foreground')} />
+                    <span className="relative z-10">{t(item.labelKey)}</span>
                   </Link>
                 </li>
               )
             })}
           </ul>
         </nav>
-        
-        {/* Admin link — desktop only */}
-        <div className="px-4 pb-2">
+
+        {/* Admin link */}
+        <div className="px-4 pb-1">
           <Link
             href="/admin/rules"
             className={cn(
-              "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all relative",
+              'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all relative',
               pathname.startsWith('/admin')
-                ? "text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                ? 'text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
             )}
           >
             {pathname.startsWith('/admin') && (
@@ -88,47 +92,50 @@ export function Navigation() {
                 layoutId="nav-active"
                 className="absolute inset-0 bg-primary rounded-xl"
                 initial={false}
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
-            <BookOpen className={cn("w-5 h-5 relative z-10", pathname.startsWith('/admin') && "text-primary-foreground")} />
-            <span className="relative z-10">Base IA</span>
+            <BookOpen className={cn('w-5 h-5 relative z-10', pathname.startsWith('/admin') && 'text-primary-foreground')} />
+            <span className="relative z-10">{t('nav.aiBase')}</span>
           </Link>
+        </div>
+
+        {/* Preferences inline trigger */}
+        <div className="px-4 pb-2">
+          <PreferencesPanel inline />
         </div>
 
         <div className="p-4 border-t border-white/5">
           <div className="glass-subtle rounded-xl p-4">
-            <p className="text-xs text-muted-foreground mb-2">Current Phase</p>
+            <p className="text-xs text-muted-foreground mb-2">{t('phase.current')}</p>
             <p className="font-semibold text-sm">Accumulation 1</p>
             <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <motion.div 
+              <motion.div
                 className="h-full bg-primary rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: '45%' }}
-                transition={{ duration: 1, ease: "easeOut" }}
+                transition={{ duration: 1, ease: 'easeOut' }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Week 2 of 4</p>
+            <p className="text-xs text-muted-foreground mt-2">{t('phase.week')} 2 {t('phase.of')} 4</p>
           </div>
         </div>
       </aside>
-      
+
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/5 z-50 safe-area-pb">
         <ul className="flex items-center justify-around py-2">
-          {[...navItems, { href: '/admin/rules', label: 'Base IA', icon: BookOpen }].map((item) => {
-            const isActive = pathname === item.href || 
+          {[...navItems, { href: '/admin/rules', labelKey: 'nav.aiBase' as TranslationKey, icon: BookOpen }].map((item) => {
+            const isActive = pathname === item.href ||
               (item.href !== '/' && pathname.startsWith(item.href))
-            
+
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all relative",
-                    isActive 
-                      ? "text-primary" 
-                      : "text-muted-foreground"
+                    'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative',
+                    isActive ? 'text-primary' : 'text-muted-foreground'
                   )}
                 >
                   {isActive && (
@@ -136,17 +143,22 @@ export function Navigation() {
                       layoutId="nav-active-mobile"
                       className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
                       initial={false}
-                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                     />
                   )}
                   <item.icon className="w-5 h-5" />
-                  <span className="text-xs">{item.label}</span>
+                  <span className="text-xs">{t(item.labelKey)}</span>
                 </Link>
               </li>
             )
           })}
         </ul>
       </nav>
+
+      {/* Mobile floating preferences button */}
+      <div className="md:hidden">
+        <PreferencesPanel />
+      </div>
     </>
   )
 }
