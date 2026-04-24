@@ -245,7 +245,7 @@ export default function PlanPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight mb-2">Plano de Treino</h1>
             <p className="text-muted-foreground">
-              Gerencie suas fases de treino e templates de sessão.
+              Sua estratégia semanal, macrociclo e biblioteca de exercícios.
             </p>
           </div>
           <div className="flex gap-2">
@@ -274,18 +274,18 @@ export default function PlanPage() {
         <TabsList className="glass border-white/10">
           <TabsTrigger value="sessions" className="gap-2">
             <Calendar className="w-4 h-4" />
-            Sessões
+            Semana
           </TabsTrigger>
           <TabsTrigger value="phases" className="gap-2">
             <Layers className="w-4 h-4" />
-            Fases
+            Macrociclo
           </TabsTrigger>
           <TabsTrigger value="exercises" className="gap-2">
             <Target className="w-4 h-4" />
-            Exercícios
+            Biblioteca
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="sessions" className="space-y-6">
           <TrainingConfigPanel />
 
