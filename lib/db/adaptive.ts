@@ -103,6 +103,35 @@ export async function getWeeklyPlanLog(iso_week: number, iso_year: number, tier 
   })
 }
 
+export async function updateWeeklyPlanLog(id: string, data: {
+  ai_response?: string
+  sessions_updated?: number
+  trigger_type?: string
+}): Promise<void> {
+  await prisma.weeklyPlanLog.update({
+    where: { id },
+    data: {
+      ...(data.ai_response !== undefined && { ai_response: data.ai_response }),
+      ...(data.sessions_updated !== undefined && { sessions_updated: data.sessions_updated }),
+      ...(data.trigger_type !== undefined && { trigger_type: data.trigger_type }),
+    },
+  })
+}
+
+/** Returns a pending lock log (trigger_type='__pending__') created in the last N minutes */
+export async function getPendingGenerationLog(iso_week: number, iso_year: number, withinMinutes = 5) {
+  const since = new Date(Date.now() - withinMinutes * 60 * 1000)
+  return prisma.weeklyPlanLog.findFirst({
+    where: {
+      iso_week,
+      iso_year,
+      tier: 2,
+      trigger_type: '__pending__',
+      created_at: { gte: since },
+    },
+  })
+}
+
 /** Returns ISO week number and year for a given date */
 export function getIsoWeek(date: Date): { week: number; year: number } {
   const d = new Date(date)

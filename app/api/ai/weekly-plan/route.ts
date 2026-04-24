@@ -5,10 +5,33 @@ import { getAthleteProfile } from '@/lib/db/athlete'
 import { getCurrentPhase } from '@/lib/db/phases'
 import { getWorkoutSessionsInRange } from '@/lib/db/sessions'
 import { getWeeklyVolumeByMuscle } from '@/lib/db/volume'
-import { createWeeklyPlanLog, getWeeklyPlanLog, getIsoWeek, getWeekStart } from '@/lib/db/adaptive'
+import {
+  createWeeklyPlanLog, updateWeeklyPlanLog,
+  getPendingGenerationLog, getWeeklyPlanLog,
+  getIsoWeek, getWeekStart,
+} from '@/lib/db/adaptive'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const AI_MODEL = process.env.AI_MODEL || 'gpt-4.1-mini'
+
+interface RawExercise {
+  exercise_name?: string
+  name?: string
+  nome?: string
+  sets_count?: number
+  sets?: number
+  num_sets?: number
+  reps_min?: number
+  reps_max?: number
+  reps?: number
+  suggested_load_kg?: number
+  load_kg?: number
+  carga?: number
+  target_rpe?: number
+  rpe?: number
+  target_rir?: number
+  rir?: number
+}
 
 interface SessionPlan {
   day_of_week: number
@@ -24,6 +47,62 @@ interface SessionPlan {
     target_rir?: number
   }[]
 }
+
+function normaliseExercise(raw: RawExercise): SessionPlan['exercises'][0] {
+  const repsVal = raw.reps
+  return {
+    exercise_name: raw.exercise_name ?? raw.name ?? raw.nome ?? 'Exercício',
+    sets_count: raw.sets_count ?? raw.sets ?? raw.num_sets ?? 3,
+    reps_min: raw.reps_min ?? (typeof repsVal === 'number' ? repsVal : undefined),
+    reps_max: raw.reps_max ?? (typeof repsVal === 'number' ? repsVal : undefined),
+    suggested_load_kg: raw.suggested_load_kg ?? raw.load_kg ?? raw.carga ?? null,
+    target_rpe: raw.target_rpe ?? raw.rpe ?? null,
+    target_rir: raw.target_rir ?? raw.rir ?? null,
+  }
+}
+
+function normaliseSession(raw: any): SessionPlan | null {
+  if (!raw || typeof raw !== 'object') return null
+  const dow = raw.day_of_week ?? raw.dayOfWeek ?? raw.dia ?? raw.day ?? 1
+  const name = raw.name ?? raw.nome ?? raw.session_name ?? `Treino ${dow}`
+  const rawExercises: RawExercise[] = raw.exercises ?? raw.exercicios ?? raw.exercícios ?? []
+  return {
+    day_of_week: Number(dow),
+    name: String(name),
+    coaching_note: raw.coaching_note ?? raw.note ?? raw.nota ?? undefined,
+    exercises: Array.isArray(rawExercises)
+      ? rawExercises.map(normaliseExercise)
+      : [],
+  }
+}
+
+function extractSessions(data: any): SessionPlan[] | null {
+  if (!data || typeof data !== 'object') return null
+
+  // Try direct and common key names
+  const KEYS = ['sessions', 'sessoes', 'sessões', 'treinos', 'training_sessions', 'week_sessions', 'plano', 'plan']
+  for (const key of KEYS) {
+    if (Array.isArray(data[key]) && data[key].length > 0) {
+      return data[key].map(normaliseSession).filter(Boolean) as SessionPlan[]
+    }
+  }
+
+  // Try one level of nesting (e.g. { "plan": { "sessions": [...] } })
+  for (const val of Object.values(data)) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      const nested = extractSessions(val)
+      if (nested?.length) return nested
+    }
+    // Top-level array that looks like sessions
+    if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object' && (val[0].exercises ?? val[0].exercicios)) {
+      return (val as any[]).map(normaliseSession).filter(Boolean) as SessionPlan[]
+    }
+  }
+
+  return null
+}
+
+// ─── Route ──────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,6 +121,12 @@ export async function POST(req: NextRequest) {
 
     const now = new Date()
     const { week: isoWeek, year: isoYear } = getIsoWeek(now)
+
+    // Idempotency: if another generation is already in flight, return pending
+    const inFlight = await getPendingGenerationLog(isoWeek, isoYear, 5)
+    if (inFlight && !body.overwrite) {
+      return NextResponse.json({ pending: true, reason: 'generation_in_progress', lock_id: inFlight.id })
+    }
 
     // Check if this week already has a plan (skip unless forced)
     const existing = await getWeeklyPlanLog(isoWeek, isoYear, 2)
@@ -165,6 +250,17 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
   ]
 }`
 
+    // Insert pending sentinel so concurrent requests see a lock
+    const pendingLog = await createWeeklyPlanLog({
+      iso_week: isoWeek,
+      iso_year: isoYear,
+      phase_id: phase.id,
+      tier: 2,
+      trigger_type: '__pending__',
+      context_sent: compactCtx,
+      sessions_updated: 0,
+    })
+
     const aiRes = await openai.chat.completions.create({
       model: AI_MODEL,
       response_format: { type: 'json_object' },
@@ -177,15 +273,22 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
     })
 
     const rawJson = aiRes.choices[0]?.message?.content ?? '{}'
-    let parsed: { sessions: SessionPlan[] }
+    let sessions: SessionPlan[]
     try {
-      parsed = JSON.parse(rawJson)
+      const parsed = JSON.parse(rawJson)
+      const extracted = extractSessions(parsed)
+      if (!extracted?.length) {
+        await updateWeeklyPlanLog(pendingLog.id, { trigger_type: '__failed__', ai_response: rawJson, sessions_updated: 0 })
+        console.error('[weekly-plan] unexpected shape:', rawJson.slice(0, 500))
+        return NextResponse.json(
+          { error: 'AI não retornou sessões no formato esperado', raw: rawJson.slice(0, 500) },
+          { status: 500 },
+        )
+      }
+      sessions = extracted
     } catch {
-      return NextResponse.json({ error: 'AI retornou JSON inválido', raw: rawJson }, { status: 500 })
-    }
-
-    if (!parsed.sessions?.length) {
-      return NextResponse.json({ error: 'AI não retornou sessões', raw: rawJson }, { status: 500 })
+      await updateWeeklyPlanLog(pendingLog.id, { trigger_type: '__failed__', ai_response: rawJson, sessions_updated: 0 })
+      return NextResponse.json({ error: 'AI retornou JSON inválido', raw: rawJson.slice(0, 500) }, { status: 500 })
     }
 
     // Delete existing non-template sessions for this week if overwriting
@@ -197,7 +300,7 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
 
     // Create PlannedSession + PlannedExercise rows for each session
     const createdSessions: string[] = []
-    for (const [idx, s] of parsed.sessions.entries()) {
+    for (const [idx, s] of sessions.entries()) {
       // Find matching exercise IDs from DB
       const exerciseNames = s.exercises.map(e => e.exercise_name)
       const exercises = await prisma.exercise.findMany({
@@ -244,13 +347,9 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
       }
     }
 
-    const log = await createWeeklyPlanLog({
-      iso_week: isoWeek,
-      iso_year: isoYear,
-      phase_id: phase.id,
-      tier: 2,
+    // Mark the pending sentinel as done (reuse same row)
+    await updateWeeklyPlanLog(pendingLog.id, {
       trigger_type: isManual ? 'manual' : 'auto_monday',
-      context_sent: compactCtx,
       ai_response: rawJson,
       sessions_updated: createdSessions.length,
     })
@@ -260,7 +359,7 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
       sessions_created: createdSessions.length,
       iso_week: isoWeek,
       iso_year: isoYear,
-      log_id: log.id,
+      log_id: pendingLog.id,
     })
   } catch (e) {
     console.error('[POST /api/ai/weekly-plan]', e)

@@ -1,11 +1,38 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Loader2, Sparkles, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/glass-card'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+
+// ─── localStorage generation lock ───────────────────────────────────────────
+const LOCK_KEY = 'pump-weekly-plan-lock'
+const LOCK_TTL_MS = 4 * 60 * 1000 // 4 minutes
+
+interface Lock { startedAt: number; week: number; year: number }
+
+function readLock(): Lock | null {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(LOCK_KEY) : null
+    if (!raw) return null
+    const lock: Lock = JSON.parse(raw)
+    if (Date.now() - lock.startedAt > LOCK_TTL_MS) {
+      localStorage.removeItem(LOCK_KEY)
+      return null
+    }
+    return lock
+  } catch { return null }
+}
+function writeLock(week: number, year: number) {
+  try { localStorage.setItem(LOCK_KEY, JSON.stringify({ startedAt: Date.now(), week, year })) } catch {}
+}
+function clearLock() {
+  try { localStorage.removeItem(LOCK_KEY) } catch {}
+}
+
+// ─── types ───────────────────────────────────────────────────────────────────
 
 interface WeekSession {
   id: string
@@ -45,6 +72,8 @@ const STATUS_COLORS: Record<string, string> = {
   'Pendente': 'text-muted-foreground',
 }
 
+// ─── component ───────────────────────────────────────────────────────────────
+
 interface WeekPlanStatusProps {
   trainingDayMask: number[]
   autoWeeklyPlan: boolean
@@ -55,22 +84,70 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
   const [loading, setLoading] = useState(true)
   const [planning, setPlanning] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const fetchStatus = async () => {
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }, [])
+
+  const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/plan/week-status')
-      if (res.ok) setStatus(await res.json())
-    } catch {
-      // silent — not critical
-    } finally {
-      setLoading(false)
-    }
-  }
+      if (res.ok) {
+        const data: WeekStatus = await res.json()
+        setStatus(data)
+        return data
+      }
+    } catch {}
+    return null
+  }, [])
 
-  useEffect(() => { fetchStatus() }, [])
+  // Poll while generating — stop when plan appears
+  const startPolling = useCallback((expectedWeek: number, expectedYear: number) => {
+    if (pollRef.current) return
+    pollRef.current = setInterval(async () => {
+      const data = await fetchStatus()
+      if (data?.iso_week === expectedWeek && data?.iso_year === expectedYear && data.has_current_week_plan) {
+        stopPolling()
+        setPlanning(false)
+        clearLock()
+        toast.success(`Plano gerado: ${data.sessions.length} sessões criadas!`)
+      }
+    }, 4000)
+  }, [fetchStatus, stopPolling])
+
+  useEffect(() => {
+    fetchStatus().then(data => {
+      setLoading(false)
+      if (!data) return
+      // Restore generating state if a lock exists for the current week
+      const lock = readLock()
+      if (lock && lock.week === data.iso_week && lock.year === data.iso_year && !data.has_current_week_plan) {
+        setPlanning(true)
+        startPolling(data.iso_week, data.iso_year)
+      }
+    })
+    return () => stopPolling()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePlanWeek = async () => {
+    if (planning) return
+
+    const currentWeek = status?.iso_week ?? 0
+    const currentYear = status?.iso_year ?? 0
+
+    // Check for existing lock before even calling the server
+    const existingLock = readLock()
+    if (existingLock && existingLock.week === currentWeek && existingLock.year === currentYear) {
+      toast.info('Geração em andamento — aguarde...')
+      setPlanning(true)
+      startPolling(currentWeek, currentYear)
+      return
+    }
+
+    writeLock(currentWeek, currentYear)
     setPlanning(true)
+
     try {
       const res = await fetch('/api/ai/weekly-plan', {
         method: 'POST',
@@ -78,19 +155,38 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
         body: JSON.stringify({ manual: true }),
       })
       const data = await res.json()
+
+      if (data.pending) {
+        // Another request is already in flight on the server
+        toast.info('Geração já em andamento em outro dispositivo ou aba.')
+        startPolling(currentWeek, currentYear)
+        return
+      }
+
       if (!res.ok) throw new Error(data.error || 'Erro ao gerar plano')
+
       if (data.skipped) {
         toast.info('Semana já planejada. Use "Forçar" para replanejar.')
+        clearLock()
+        setPlanning(false)
       } else {
-        toast.success(`Plano gerado: ${data.sessions_created} sessões criadas`)
+        // Success — poll will detect the plan and clear state
+        startPolling(currentWeek, currentYear)
+        toast.success(`IA processando: ${data.sessions_created} sessões criadas`, { duration: 3000 })
         await fetchStatus()
+        clearLock()
+        setPlanning(false)
+        stopPolling()
       }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao planejar semana')
-    } finally {
+      clearLock()
       setPlanning(false)
+      stopPolling()
+      toast.error(e instanceof Error ? e.message : 'Erro ao planejar semana')
     }
   }
+
+  // ── render ──────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -115,21 +211,17 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium">
-              Semana {status?.iso_week ?? '—'}
-            </span>
-            {phase && (
-              <span className="text-xs text-muted-foreground">
-                · {phase.name}
-              </span>
-            )}
-            {hasPlan && (
-              <span className="text-xs text-muted-foreground">
-                · {done}/{total} concluídas
-              </span>
-            )}
-            {!hasPlan && (
+            <span className="text-sm font-medium">Semana {status?.iso_week ?? '—'}</span>
+            {phase && <span className="text-xs text-muted-foreground">· {phase.name}</span>}
+            {hasPlan && <span className="text-xs text-muted-foreground">· {done}/{total} concluídas</span>}
+            {!hasPlan && !planning && (
               <span className="text-xs text-amber-400">· Sem plano para esta semana</span>
+            )}
+            {planning && (
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Gerando plano...
+              </span>
             )}
           </div>
           {hasPlan && total > 0 && (
@@ -137,10 +229,7 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
               {Array.from({ length: total }).map((_, i) => (
                 <div
                   key={i}
-                  className={cn(
-                    'h-1 rounded-full flex-1 transition-colors',
-                    i < done ? 'bg-green-400' : 'bg-white/15'
-                  )}
+                  className={cn('h-1 rounded-full flex-1 transition-colors', i < done ? 'bg-green-400' : 'bg-white/15')}
                 />
               ))}
             </div>
@@ -153,14 +242,13 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
             variant="outline"
             onClick={e => { e.stopPropagation(); handlePlanWeek() }}
             disabled={planning}
-            className="h-7 px-2.5 text-xs gap-1.5 border-white/15 bg-white/5 hover:bg-white/10"
+            className="h-7 px-2.5 text-xs gap-1.5 border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-60"
+            title={planning ? 'Geração em andamento...' : 'Gerar plano com IA'}
           >
-            {planning ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Sparkles className="w-3 h-3" />
-            )}
-            Planejar Semana
+            {planning
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <Sparkles className="w-3 h-3" />}
+            {planning ? 'Gerando...' : 'Planejar Semana'}
           </Button>
           <ChevronRight className={cn('w-4 h-4 text-muted-foreground transition-transform', expanded && 'rotate-90')} />
         </div>
@@ -172,9 +260,7 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
             <div key={session.id} className="px-4 py-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <span className="text-xs text-muted-foreground">
-                    {DAY_NAMES[session.day_of_week ?? 0]}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{DAY_NAMES[session.day_of_week ?? 0]}</span>
                   <p className="text-sm font-medium">{session.name}</p>
                   {session.ai_notes && (
                     <p className="text-xs text-muted-foreground mt-0.5 italic">{session.ai_notes}</p>
@@ -191,7 +277,7 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
                       key={ex.id}
                       className={cn(
                         'text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10',
-                        ex.contingency_added && 'border-amber-500/30 text-amber-400'
+                        ex.contingency_added && 'border-amber-500/30 text-amber-400',
                       )}
                     >
                       {ex.exercise_name}
@@ -199,9 +285,7 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
                     </span>
                   ))}
                   {session.exercises.length > 4 && (
-                    <span className="text-xs text-muted-foreground px-1">
-                      +{session.exercises.length - 4}
-                    </span>
+                    <span className="text-xs text-muted-foreground px-1">+{session.exercises.length - 4}</span>
                   )}
                 </div>
               )}
@@ -213,15 +297,24 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
       {expanded && !hasPlan && (
         <div className="border-t border-white/10 p-4 text-center">
           <p className="text-sm text-muted-foreground mb-3">
-            Nenhum plano gerado para esta semana.
-            {autoWeeklyPlan
-              ? ' A IA gerará automaticamente na segunda-feira.'
-              : ' O replanejamento automático está desativado.'}
+            {planning
+              ? 'A IA está montando seu plano semanal — pode levar até 30 segundos.'
+              : autoWeeklyPlan
+                ? 'Nenhum plano gerado. A IA gerará automaticamente na segunda-feira.'
+                : 'Nenhum plano gerado. O replanejamento automático está desativado.'}
           </p>
-          <Button size="sm" onClick={handlePlanWeek} disabled={planning} className="gap-2">
-            {planning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Gerar Agora
-          </Button>
+          {!planning && (
+            <Button size="sm" onClick={handlePlanWeek} disabled={planning} className="gap-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              Gerar Agora
+            </Button>
+          )}
+          {planning && (
+            <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processando com IA...
+            </div>
+          )}
         </div>
       )}
     </GlassCard>
