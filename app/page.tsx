@@ -23,7 +23,7 @@ import { MiniCalendar } from '@/components/mini-calendar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Calendar, TrendingUp, PieChart, Dumbbell, PlayCircle,
-  Flame, Target, Award, Coffee, Sparkles, CheckCircle2, Sunrise,
+  Flame, Target, Award, Coffee, Sparkles, CheckCircle2, Sunrise, ChevronRight,
 } from 'lucide-react'
 import { ptBR, enUS, es } from 'date-fns/locale'
 import Link from 'next/link'
@@ -46,6 +46,13 @@ export default function Dashboard() {
 
   const todayWorkout = getTodaysWorkout()
   const completedSessions = useMemo(() => sessions.filter(s => s.status === 'completed'), [sessions])
+
+  const nextWorkout = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    return sessions
+      .filter(s => s.status !== 'completed' && s.date > todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null
+  }, [sessions])
 
   // ── Streak ──
   const streakDays = useMemo(() => {
@@ -170,14 +177,34 @@ export default function Dashboard() {
               cta={{ label: 'Ver detalhes', href: `/workout/${todayWorkout.id}` }}
             />
           ) : (
-            <HeroCard
-              variant="muted"
-              icon={Coffee}
-              eyebrow={format(new Date(), 'EEEE', { locale: dfnsLocale })}
-              title="Hoje é dia de descanso"
-              subtitle="Recuperação é onde o músculo cresce."
-              cta={{ label: 'Ver plano semanal', href: '/plan', icon: Calendar }}
-            />
+            <>
+              <HeroCard
+                variant="muted"
+                icon={Coffee}
+                eyebrow={format(new Date(), 'EEEE', { locale: dfnsLocale })}
+                title="Hoje é dia de descanso"
+                subtitle="Recuperação é onde o músculo cresce."
+                cta={{ label: 'Ver plano semanal', href: '/plan', icon: Calendar }}
+              />
+              {nextWorkout && (
+                <Link href={`/workout/${nextWorkout.id}`}>
+                  <div className="glass-subtle rounded-2xl px-5 py-4 flex items-center justify-between gap-3 border border-white/5 hover:border-primary/30 hover:bg-white/5 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                        <Dumbbell className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                          Próximo treino · {format(parseISO(nextWorkout.date), 'EEEE, d MMM', { locale: dfnsLocale })}
+                        </p>
+                        <p className="font-semibold text-sm">{nextWorkout.name}</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </div>
+                </Link>
+              )}
+            </>
           )}
 
           <InsightBanner text={aiInsight} tone="ai" />

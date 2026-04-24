@@ -31,15 +31,15 @@
 - [x] **U1** · Responsividade mobile: sidebar fixa colapsa layout em 375px — hamburger menu + single-column layout  
 - [x] **U2** · Idioma inconsistente: `FRIDAY`, menu items em inglês, `STREAK`, `BODY FAT`, `Split` — padronizar para português  
 - [x] **U3** · Workout player: título da sessão ausente no header — mostrar nome da sessão  
-- [ ] **U4** · Home "Hoje" dia de descanso: não mostra próximo treino programado nem atalho para o plano  
-- [ ] **U5** · Nutrition: texto invisível durante carregamento (branco sobre branco) — adicionar skeleton loader  
+- [x] **U4** · Home "Hoje" dia de descanso: não mostra próximo treino programado nem atalho para o plano  
+- [x] **U5** · Nutrition: texto invisível durante carregamento (branco sobre branco) — adicionar skeleton loader  
 
 ### P2 — Usabilidade Moderada
 
 - [ ] **U6** · Termos técnicos sem explicação (MEV, MRV, RIR, RPE, mesociclo): adicionar tooltips contextuais  
 - [ ] **U7** · Menu "AI Base" sem subtítulo ou ícone claro — adicionar descrição "Base de Conhecimento da IA"  
-- [ ] **U8** · Nutrition: identidade visual neon/gamer destoa do design system — alinhar ao glassmorphism do app  
-- [ ] **U9** · Workout list: cards sem nome de sessão — exibir nome (ex.: "Upper A", "Lower B")  
+- [x] **U8** · Nutrition: identidade visual neon/gamer destoa do design system — alinhar ao glassmorphism do app  
+- [x] **U9** · Workout list: cards sem nome de sessão — exibir nome (ex.: "Upper A", "Lower B")  
 - [ ] **U10** · Profile: `<title>` da aba do browser mostra URL em vez do nome da app  
 - [ ] **U11** · Sidebar: indicador de fase coberto pelo avatar do usuário — reposicionar  
 - [ ] **U12** · AI Base: categorias de filtro cortadas horizontalmente — scroll indicator ou wrap  

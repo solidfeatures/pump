@@ -61,12 +61,16 @@ export default async function RootLayout({
     new Date().toISOString().split('T')[0]
   ).catch(() => [])
 
-  // Enrich each session with grouped exercise data for the UI
-  const initialDbSessions = rawDbSessions.map(s => ({
-    ...s,
-    status: 'completed' as const,
-    exercises: buildExercisesFromSets(s, exercises),
-  }))
+  // Enrich each session with grouped exercise data + derive session name from matching planned template
+  const initialDbSessions = rawDbSessions.map(s => {
+    const matchedPlan = initialPlannedSessions.find(ps => ps.plannedDate === s.date)
+    return {
+      ...s,
+      name: matchedPlan?.name ?? undefined,
+      status: 'completed' as const,
+      exercises: buildExercisesFromSets(s, exercises),
+    }
+  })
 
   return (
     <html lang="pt-BR" className="bg-background" data-theme="dark" suppressHydrationWarning>
