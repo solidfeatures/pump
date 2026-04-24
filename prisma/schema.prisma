@@ -23,6 +23,7 @@ model TrainingPhase {
   is_current           Boolean          @default(false)
   created_at           DateTime         @default(now()) @db.Timestamptz(6)
   nutrition_plans      NutritionPlan[]
+  nutrition_protocols  NutritionProtocol[]
   sessions             PlannedSession[]
   weekly_plan_logs     WeeklyPlanLog[]
 
@@ -209,6 +210,46 @@ model NutritionPlan {
   training_phases      TrainingPhase? @relation(fields: [phase_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("nutrition_plans")
+}
+
+model NutritionProtocol {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  goal              String
+  start_date        DateTime        @db.Date
+  end_date          DateTime?       @db.Date
+  is_active         Boolean         @default(false)
+  calories_training Int?
+  calories_rest     Int?
+  protein_g         Int?
+  carbs_g           Int?
+  carbs_rest_g      Int?
+  fat_g             Int?
+  meals             Json            @default("[]")
+  ai_logic          String          @default("")
+  recommendations   String[]
+  weight_at_start   Decimal?        @db.Decimal(5, 2)
+  phase_id          String?         @db.Uuid
+  model_used        String?         @default("Pump Adaptive Engine v2")
+  created_at        DateTime?       @default(now()) @db.Timestamptz(6)
+  training_phase    TrainingPhase?  @relation(fields: [phase_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nutrition_logs    NutritionLog[]
+
+  @@map("nutrition_protocols")
+}
+
+model NutritionLog {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  protocol_id      String            @db.Uuid
+  date             DateTime          @unique @db.Date
+  actual_calories  Int?
+  actual_protein_g Int?
+  actual_carbs_g   Int?
+  actual_fat_g     Int?
+  notes            String?
+  created_at       DateTime?         @default(now()) @db.Timestamptz(6)
+  protocol         NutritionProtocol @relation(fields: [protocol_id], references: [id], onDelete: Cascade)
+
+  @@map("nutrition_logs")
 }
 
 model ClinicalAlert {

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
-import { 
-  getLatestBodyMetrics, 
+import {
+  getLatestBodyMetrics,
   getBodyMetricsHistory,
-  getCurrentPhase, 
+  getCurrentPhase,
   getAllRules,
   getAthleteProfile,
-  saveNutritionPlan
+  saveNutritionPlan,
+  getActiveProtocol,
+  updateProtocol,
 } from '@/lib/db'
 import { calcIdealProportions, calcNaturalLBMLimit } from '@/lib/body-proportions'
 import { format } from 'date-fns'
@@ -281,26 +283,70 @@ export async function POST() {
       "Ajuste Fino: Se sentir fome excessiva, aumente o volume de vegetais."
     ]
 
-    const result = {
-      date: format(new Date(), 'yyyy-MM-dd'),
+    const today = format(new Date(), 'yyyy-MM-dd')
+
+    const computed = {
       goal: athleteGoal,
-      calories_target: Math.round(calories),
+      calories_training: Math.round(calories),
+      calories_rest: Math.round(calories - 200),   // rest day = training - 200 kcal
+      protein_g: proteinG,
+      carbs_g: carbsG,
+      carbs_rest_g: Math.max(0, Math.round(carbsG * 0.75)),  // 25% fewer carbs on rest
+      fat_g: fatG,
+      meals: mealPlan,
+      ai_logic: aiLogicSteps.join(' | '),
+      recommendations: finalRecommendations,
+      weight_at_start: Number(weight),
+      phase_id: currentPhase?.id,
+      model_used: 'Pump Adaptive Engine v2',
+    }
+
+    // 8. Persist to legacy nutrition_plans (backwards compat)
+    await saveNutritionPlan({
+      date: today,
+      goal: athleteGoal,
+      calories_target: computed.calories_training,
       protein_g: proteinG,
       carbs_g: carbsG,
       fat_g: fatG,
       meals: mealPlan,
-      meal_plan: mealPlan, // redundant for compatibility
-      ai_logic: aiLogicSteps.join(' | '),
+      meal_plan: mealPlan,
+      ai_logic: computed.ai_logic,
       recommendations: finalRecommendations,
       weight_at_generation: Number(weight),
       phase_id: currentPhase?.id,
-      model_used: "Pump Adaptive Engine v2"
+      model_used: 'Pump Adaptive Engine v2',
+    })
+
+    // 9. Update nutrition_protocols (new source of truth)
+    const activeProtocol = await getActiveProtocol()
+    const goalChanged = !activeProtocol || activeProtocol.goal !== athleteGoal
+
+    if (!goalChanged && activeProtocol?.id) {
+      // Same goal → refresh the targets on the existing protocol
+      await updateProtocol(activeProtocol.id, {
+        calories_training: computed.calories_training,
+        calories_rest: computed.calories_rest,
+        protein_g: computed.protein_g,
+        carbs_g: computed.carbs_g,
+        carbs_rest_g: computed.carbs_rest_g,
+        fat_g: computed.fat_g,
+        meals: computed.meals,
+        ai_logic: computed.ai_logic,
+        recommendations: computed.recommendations,
+        phase_id: currentPhase?.id,
+      })
     }
 
-    // 8. Persist to Database
-    await saveNutritionPlan(result)
-
-    return NextResponse.json(result)
+    return NextResponse.json({
+      ...computed,
+      // Tell the client whether the goal changed so it can show a confirmation dialog
+      goal_changed: goalChanged,
+      previous_goal: goalChanged ? (activeProtocol?.goal ?? null) : null,
+      active_protocol_id: activeProtocol?.id ?? null,
+      // Legacy field for any existing code that reads calories_target
+      calories_target: computed.calories_training,
+    })
 
   } catch (error: any) {
     console.error('[Nutrition AI Route] Critical Error:', error)
