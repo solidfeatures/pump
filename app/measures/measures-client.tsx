@@ -372,9 +372,6 @@ export function MeasuresClient({ initialHistory, latestMetrics: initialLatest }:
 
         {/* ── OVERVIEW ── */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Cinematic progress timeline — hero section */}
-          <BodyProgressTimeline metrics={history} />
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -452,6 +449,9 @@ export function MeasuresClient({ initialHistory, latestMetrics: initialLatest }:
               </div>
             </GlassCard>
           </div>
+
+          {/* Progress timeline */}
+          <BodyProgressTimeline metrics={history} />
 
           {/* Photo management */}
           <PhotoSection />
