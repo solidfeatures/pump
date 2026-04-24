@@ -98,7 +98,12 @@ export async function createContingencyEvent(data: {
 
 export async function getWeeklyPlanLog(iso_week: number, iso_year: number, tier = 2) {
   return prisma.weeklyPlanLog.findFirst({
-    where: { iso_week, iso_year, tier },
+    where: {
+      iso_week,
+      iso_year,
+      tier,
+      trigger_type: { notIn: ['__pending__', '__failed__'] },
+    },
     orderBy: { created_at: 'desc' },
   })
 }
