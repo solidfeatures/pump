@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getWeeklyVolumeByMuscle } from '@/lib/db/volume'
 import { getCurrentPhase } from '@/lib/db/phases'
-import { getIsoWeek, getWeekStart } from '@/lib/db/adaptive'
+import { getIsoWeek, getWeekStart, getPendingGenerationLog } from '@/lib/db/adaptive'
 
 export async function GET() {
   try {
@@ -16,7 +16,7 @@ export async function GET() {
     const startStr = weekStart.toISOString().split('T')[0]
     const endStr = weekEnd.toISOString().split('T')[0]
 
-    const [phase, volumeData, plannedSessions] = await Promise.all([
+    const [phase, volumeData, plannedSessions, pendingLog] = await Promise.all([
       getCurrentPhase(),
       getWeeklyVolumeByMuscle(startStr, endStr),
       prisma.plannedSession.findMany({
@@ -33,6 +33,7 @@ export async function GET() {
         },
         orderBy: { day_of_week: 'asc' },
       }),
+      getPendingGenerationLog(isoWeek, isoYear, 5),
     ])
 
     const volumeByMuscle: Record<string, number> = {}
@@ -77,6 +78,7 @@ export async function GET() {
       } : null,
       sessions,
       has_current_week_plan: hasCurrentWeekPlan,
+      is_generating: !!pendingLog,
       volume_by_muscle: volumeByMuscle,
     })
   } catch (e) {

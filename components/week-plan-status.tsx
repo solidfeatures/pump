@@ -61,6 +61,7 @@ interface WeekStatus {
   phase: { name: string; phase_order: number | null; duration_weeks: number | null; progression_rule: string | null } | null
   sessions: WeekSession[]
   has_current_week_plan: boolean
+  is_generating: boolean
   volume_by_muscle: Record<string, number>
 }
 
@@ -120,9 +121,11 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
     fetchStatus().then(data => {
       setLoading(false)
       if (!data) return
-      // Restore generating state if a lock exists for the current week
+      // Use DB-level pending sentinel as authoritative signal; localStorage lock as fallback
       const lock = readLock()
-      if (lock && lock.week === data.iso_week && lock.year === data.iso_year && !data.has_current_week_plan) {
+      const serverGenerating = data.is_generating && !data.has_current_week_plan
+      const clientLock = !!(lock && lock.week === data.iso_week && lock.year === data.iso_year && !data.has_current_week_plan)
+      if (serverGenerating || clientLock) {
         setPlanning(true)
         startPolling(data.iso_week, data.iso_year)
       }
@@ -169,6 +172,7 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
         toast.info('Semana já planejada. Use "Forçar" para replanejar.')
         clearLock()
         setPlanning(false)
+        await fetchStatus()
       } else {
         // Success — poll will detect the plan and clear state
         startPolling(currentWeek, currentYear)
