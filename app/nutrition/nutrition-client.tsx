@@ -61,7 +61,7 @@ export default function NutritionClient({
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [activeTab, setActiveTab] = useState('plan')
+  const [activeTab, setActiveTab] = useState('today')
 
   const generateAIPlan = async () => {
     setLoading(true)
@@ -201,10 +201,104 @@ export default function NutritionClient({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-zinc-900/50 border border-white/5 p-1 rounded-xl w-full max-w-md">
+        <TabsList className="bg-zinc-900/50 border border-white/5 p-1 rounded-xl w-full max-w-lg">
+          <TabsTrigger value="today" className="flex-1 data-[state=active]:bg-[#E9FF60] data-[state=active]:text-black">Hoje</TabsTrigger>
           <TabsTrigger value="plan" className="flex-1 data-[state=active]:bg-[#00F0FF] data-[state=active]:text-black">Plano</TabsTrigger>
           <TabsTrigger value="history" className="flex-1 data-[state=active]:bg-[#00F0FF] data-[state=active]:text-black">Histórico</TabsTrigger>
         </TabsList>
+
+        {/* ────────── TAB 1: HOJE ────────── */}
+        <TabsContent value="today" className="space-y-6">
+          {plan ? (
+            <>
+              {/* Hero: kcal gigante */}
+              <GlassCard className="p-8 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#E9FF60]/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+                <div className="relative">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#E9FF60] mb-2">Meta de hoje</p>
+                  <div className="flex items-baseline justify-center gap-2 mb-6">
+                    <span className="text-7xl md:text-8xl font-black text-[#E9FF60] tracking-tighter leading-none">
+                      {plan.calories_target}
+                    </span>
+                    <span className="text-lg font-medium text-muted-foreground">kcal</span>
+                  </div>
+
+                  {/* Macros row */}
+                  <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">Proteína</p>
+                      <p className="text-3xl font-black text-[#E9FF60] tracking-tighter">{plan.protein_g}<span className="text-sm font-normal text-muted-foreground ml-0.5">g</span></p>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">Carbos</p>
+                      <p className="text-3xl font-black text-[#00F0FF] tracking-tighter">{plan.carbs_g}<span className="text-sm font-normal text-muted-foreground ml-0.5">g</span></p>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-1">Gorduras</p>
+                      <p className="text-3xl font-black text-[#FF00E5] tracking-tighter">{plan.fat_g}<span className="text-sm font-normal text-muted-foreground ml-0.5">g</span></p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={generateAIPlan}
+                    disabled={loading}
+                    className="mt-6 inline-flex items-center gap-2 bg-zinc-900 border border-[#00F0FF]/30 hover:border-[#00F0FF] text-white px-5 py-2.5 rounded-xl transition-all font-semibold text-sm disabled:opacity-50"
+                  >
+                    <RotateCcw className={`w-4 h-4 text-[#00F0FF] ${loading ? 'animate-spin' : ''}`} />
+                    {loading ? 'Atualizando...' : 'Atualizar plano baseado no peso atual'}
+                  </button>
+                </div>
+              </GlassCard>
+
+              {/* Next meal */}
+              {plan.meals && plan.meals.length > 0 && (
+                <GlassCard className="p-5 flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-[#00F0FF]/15 text-[#00F0FF]">
+                    <Utensils className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-0.5">Próxima refeição</p>
+                    <p className="font-bold text-base">{plan.meals[0].name}</p>
+                    <p className="text-xs text-muted-foreground">{plan.meals[0].time} · {plan.meals[0].items.length} itens</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('plan')}
+                    className="flex items-center gap-1 text-xs font-semibold text-[#00F0FF] hover:underline"
+                  >
+                    Ver plano completo
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </GlassCard>
+              )}
+
+              {/* AI rationale short */}
+              {plan.recommendations && plan.recommendations[0] && (
+                <GlassCard className="p-4 border-[#00F0FF]/20 flex items-start gap-3">
+                  <Brain className="w-4 h-4 text-[#00F0FF] shrink-0 mt-0.5" />
+                  <p className="text-sm text-muted-foreground italic leading-relaxed">
+                    {plan.recommendations[0]}
+                  </p>
+                </GlassCard>
+              )}
+            </>
+          ) : (
+            <GlassCard className="p-8 text-center">
+              <Utensils className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
+              <h3 className="font-semibold text-base mb-1">Nenhum plano ativo</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                Gere seu primeiro plano nutricional com IA baseado no seu objetivo e medidas.
+              </p>
+              <button
+                onClick={generateAIPlan}
+                disabled={loading}
+                className="inline-flex items-center gap-2 bg-[#E9FF60] hover:bg-[#d4e94d] text-black px-5 py-2.5 rounded-xl transition-all font-bold text-sm disabled:opacity-50"
+              >
+                <Brain className="w-4 h-4" />
+                {loading ? 'Gerando...' : 'Gerar plano com IA'}
+              </button>
+            </GlassCard>
+          )}
+        </TabsContent>
 
         <TabsContent value="plan" className="space-y-8">
 
