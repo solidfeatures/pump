@@ -268,7 +268,7 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 2000,
+      max_tokens: 4096,
       temperature: 0.3,
     })
 
