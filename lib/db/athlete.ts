@@ -6,6 +6,10 @@ export interface AthleteProfile {
   experience_level: string
   injuries: string[]
   training_days: number
+  training_day_mask: number[]
+  auto_weekly_plan: boolean
+  auto_contingency_plan: boolean
+  auto_phase_alert: boolean
   goal?: string
   gender?: string
   birth_date?: string
@@ -19,6 +23,10 @@ function mapProfile(raw: {
   experience_level: string
   injuries: string[]
   training_days: number
+  training_day_mask: number[]
+  auto_weekly_plan: boolean
+  auto_contingency_plan: boolean
+  auto_phase_alert: boolean
   goal: string
   gender: string
   birth_date: Date
@@ -31,6 +39,10 @@ function mapProfile(raw: {
     experience_level: raw.experience_level,
     injuries: raw.injuries,
     training_days: raw.training_days,
+    training_day_mask: raw.training_day_mask ?? [1, 3, 5],
+    auto_weekly_plan: raw.auto_weekly_plan ?? true,
+    auto_contingency_plan: raw.auto_contingency_plan ?? true,
+    auto_phase_alert: raw.auto_phase_alert ?? true,
     goal: raw.goal,
     gender: raw.gender,
     birth_date: raw.birth_date.toISOString().split('T')[0],
@@ -47,6 +59,10 @@ export async function getAthleteProfile(): Promise<AthleteProfile | null> {
         name: 'Atleta',
         experience_level: 'Intermediário',
         training_days: 4,
+        training_day_mask: [1, 3, 5],
+        auto_weekly_plan: true,
+        auto_contingency_plan: true,
+        auto_phase_alert: true,
         injuries: [],
         goal: 'Crescer Seco',
         gender: 'Masculino',
@@ -66,6 +82,10 @@ export async function updateAthleteProfile(profile: Partial<AthleteProfile>): Pr
       experience_level: profile.experience_level,
       injuries: profile.injuries,
       training_days: profile.training_days,
+      training_day_mask: profile.training_day_mask,
+      auto_weekly_plan: profile.auto_weekly_plan,
+      auto_contingency_plan: profile.auto_contingency_plan,
+      auto_phase_alert: profile.auto_phase_alert,
       goal: profile.goal,
       gender: profile.gender,
       birth_date: profile.birth_date ? new Date(profile.birth_date) : undefined,

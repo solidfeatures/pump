@@ -17,6 +17,8 @@ import { toast } from 'sonner'
 import { AthleteProfile } from '@/lib/db/athlete'
 import { updateProfileAction } from '@/app/actions'
 import { User, Target, Dumbbell, ShieldAlert, Save, Loader2, Calendar } from 'lucide-react'
+import { AiSettingsPanel } from '@/components/ai-settings-panel'
+import { WeeklyDaySelector } from '@/components/weekly-day-selector'
 
 function calcAge(birthDate: string): number | null {
   if (!birthDate) return null
@@ -187,6 +189,17 @@ export function ProfileForm({ initialProfile }: Props) {
                 Este objetivo guiará as recomendações da IA.
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label>Dias de Treino</Label>
+              <WeeklyDaySelector
+                value={profile.training_day_mask ?? [1, 3, 5]}
+                onChange={days => setProfile({ ...profile, training_day_mask: days })}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                A IA usará estes dias como âncoras ao gerar o plano semanal.
+              </p>
+            </div>
           </GlassCard>
         </div>
 
@@ -211,6 +224,16 @@ export function ProfileForm({ initialProfile }: Props) {
             />
           </div>
         </GlassCard>
+
+        <AiSettingsPanel
+          settings={{
+            auto_weekly_plan: profile.auto_weekly_plan ?? true,
+            auto_contingency_plan: profile.auto_contingency_plan ?? true,
+            auto_phase_alert: profile.auto_phase_alert ?? true,
+          }}
+          onChange={(key, value) => setProfile({ ...profile, [key]: value })}
+          disabled={saving}
+        />
 
         <div className="flex justify-end">
           <Button

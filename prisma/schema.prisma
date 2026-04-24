@@ -24,6 +24,7 @@ model TrainingPhase {
   created_at           DateTime         @default(now()) @db.Timestamptz(6)
   nutrition_plans      NutritionPlan[]
   sessions             PlannedSession[]
+  weekly_plan_logs     WeeklyPlanLog[]
 
   @@map("training_phases")
 }
@@ -58,16 +59,20 @@ model ExerciseMuscle {
 }
 
 model AthleteProfile {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String   @default("Atleta")
-  experience_level String   @default("Intermediário")
-  goal             String   @default("Crescer Seco")
-  injuries         String[]
-  training_days    Int      @default(4)
-  gender           String   @default("Masculino")
-  birth_date       DateTime @default(dbgenerated("'2000-01-01'::timestamp")) @db.Timestamptz(6)
-  created_at       DateTime @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String   @default("Atleta")
+  experience_level      String   @default("Intermediário")
+  goal                  String   @default("Crescer Seco")
+  injuries              String[]
+  training_days         Int      @default(4)
+  training_day_mask     Int[]    @default([1, 3, 5])
+  auto_weekly_plan      Boolean  @default(true)
+  auto_contingency_plan Boolean  @default(true)
+  auto_phase_alert      Boolean  @default(true)
+  gender                String   @default("Masculino")
+  birth_date            DateTime @default(dbgenerated("'2000-01-01'::timestamp")) @db.Timestamptz(6)
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("athlete_profile")
 }
@@ -84,6 +89,10 @@ model PlannedSession {
   status            String            @default("Pendente")
   actual_session_id String?           @db.Uuid
   ai_notes          String?
+  is_template       Boolean           @default(false)
+  iso_week          Int?
+  iso_year          Int?
+  tier              Int               @default(1)
   created_at        DateTime          @default(now()) @db.Timestamptz(6)
   exercises         PlannedExercise[]
   phase             TrainingPhase?    @relation(fields: [phase_id], references: [id])
@@ -104,6 +113,9 @@ model PlannedExercise {
   technique          String?
   ai_feedback        String?
   sort_order         Int            @default(0)
+  actual_sets_done   Int?
+  actual_load_kg     Decimal?       @db.Decimal(6, 2)
+  contingency_added  Boolean        @default(false)
   created_at         DateTime       @default(now()) @db.Timestamptz(6)
   exercise           Exercise       @relation(fields: [exercise_id], references: [id])
   session            PlannedSession @relation(fields: [planned_session_id], references: [id], onDelete: Cascade)
@@ -240,4 +252,37 @@ model AiCoachingRule {
   @@index([category], map: "idx_coaching_rules_category")
   @@index([priority(sort: Desc)], map: "idx_coaching_rules_priority")
   @@map("ai_coaching_rules")
+}
+
+model WeeklyPlanLog {
+  id                     String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  iso_week               Int
+  iso_year               Int
+  phase_id               String?            @db.Uuid
+  tier                   Int
+  trigger_type           String?
+  context_sent           String?
+  ai_response            String?
+  sessions_updated       Int                @default(0)
+  contingencies_detected Json?
+  created_at             DateTime           @default(now()) @db.Timestamptz(6)
+  phase                  TrainingPhase?     @relation(fields: [phase_id], references: [id])
+  contingency_events     ContingencyEvent[]
+
+  @@map("weekly_plan_logs")
+}
+
+model ContingencyEvent {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date               DateTime       @db.Date
+  week_log_id        String?        @db.Uuid
+  event_type         String
+  muscle_affected    String?
+  sets_missed        Decimal?       @db.Decimal(4, 1)
+  sets_redistributed Decimal?       @db.Decimal(4, 1)
+  resolution         String?
+  created_at         DateTime       @default(now()) @db.Timestamptz(6)
+  week_log           WeeklyPlanLog? @relation(fields: [week_log_id], references: [id])
+
+  @@map("contingency_events")
 }
