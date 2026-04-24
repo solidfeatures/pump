@@ -1,11 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { PlannedSession, PlannedExercise } from '@/lib/types'
-import fs from 'fs'
 
 export async function getPlannedSessionsByPhase(phaseId: string): Promise<PlannedSession[]> {
-  const allSessionsCount = await prisma.plannedSession.count()
   const rows = await prisma.plannedSession.findMany({
-    where: { phase_id: phaseId },
+    where: { phase_id: phaseId, is_template: true },
     include: {
       exercises: {
         include: { exercise: true },
@@ -13,12 +11,6 @@ export async function getPlannedSessionsByPhase(phaseId: string): Promise<Planne
       }
     }
   })
-
-  fs.appendFileSync('debug_db.log', `[${new Date().toISOString()}] phaseId: ${phaseId}, rows count: ${rows.length}, total sessions in db: ${allSessionsCount}\n`)
-  if (rows.length > 0) {
-    fs.appendFileSync('debug_db.log', `  - First row keys: ${Object.keys(rows[0]).join(', ')}\n`)
-    fs.appendFileSync('debug_db.log', `  - First row raw: ${JSON.stringify(rows[0])}\n`)
-  }
 
 
   return rows.map(row => ({
@@ -41,8 +33,8 @@ export async function getPlannedSessionsByPhase(phaseId: string): Promise<Planne
       setsCount: pe.sets_count,
       repsMin: pe.reps_min,
       repsMax: pe.reps_max,
-      suggestedLoadKg: pe.suggested_load_kg,
-      targetRpe: pe.target_rpe,
+      suggestedLoadKg: pe.suggested_load_kg != null ? Number(pe.suggested_load_kg) : null,
+      targetRpe: pe.target_rpe != null ? Number(pe.target_rpe) : null,
       targetRir: pe.target_rir,
       technique: pe.technique,
       aiFeedback: pe.ai_feedback,

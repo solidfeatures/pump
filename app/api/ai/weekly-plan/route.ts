@@ -222,7 +222,10 @@ export async function POST(req: NextRequest) {
     const systemPrompt = `Você é um coach de musculação especializado na metodologia de periodização em blocos de Jayme de Lamadrid.
 Gere o planejamento semanal de treino com base no contexto fornecido.
 Regras:
-- Use os templates como base para os exercícios, mas ajuste cargas e repetições com base na progressão
+- CRÍTICO: Gere sessões APENAS para os dias listados em DIAS_SEMANA. Nunca gere para outros dias.
+- O número de sessões geradas deve ser exatamente igual ao número de dias em DIAS_SEMANA.
+- Use os templates como base para os exercícios, ajustando cargas e repetições com base na progressão.
+- Use os nomes de exercícios EXATAMENTE como aparecem nos TEMPLATES — não renomeie, não traduza.
 - Progrida 2,5kg em compostos e 1kg em isoladores se o atleta estiver progredindo
 - Se estagnado: mantenha carga, aumente 1 rep
 - Se regredindo: reduza carga em 5%
@@ -231,6 +234,8 @@ Regras:
 - Responda SOMENTE com JSON válido no formato especificado`
 
     const userPrompt = `${compactCtx}
+
+IMPORTANTE: Gere SOMENTE ${dias.length} sessão(ões) — uma para cada dia em DIAS_SEMANA:[${dias.join(',')}]. Nenhuma sessão para outros dias.
 
 Gere um objeto JSON com a chave "sessions" contendo array de sessões para a semana. Cada sessão:
 {
@@ -298,16 +303,24 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
       })
     }
 
+    // Build a name→id map from template exercises (AI was given these exact names)
+    const allTemplateExercises = templateSessions.flatMap(ts => ts.exercises)
+    const templateNameToId = new Map(
+      allTemplateExercises.map(e => [e.exercise.name.toLowerCase(), e.exercise_id])
+    )
+
     // Create PlannedSession + PlannedExercise rows for each session
     const createdSessions: string[] = []
     for (const [idx, s] of sessions.entries()) {
-      // Find matching exercise IDs from DB
+      // Build case-insensitive DB fallback for any exercise not in templates
       const exerciseNames = s.exercises.map(e => e.exercise_name)
-      const exercises = await prisma.exercise.findMany({
-        where: { name: { in: exerciseNames } },
+      const dbExercises = await prisma.exercise.findMany({
+        where: {
+          OR: exerciseNames.map(name => ({ name: { equals: name, mode: 'insensitive' as const } })),
+        },
         select: { id: true, name: true },
       })
-      const nameToId = new Map(exercises.map(e => [e.name, e.id]))
+      const dbNameToId = new Map(dbExercises.map(e => [e.name.toLowerCase(), e.id]))
 
       const session = await prisma.plannedSession.create({
         data: {
@@ -329,8 +342,12 @@ Gere um objeto JSON com a chave "sessions" contendo array de sessões para a sem
       createdSessions.push(session.id)
 
       for (const [eIdx, ex] of s.exercises.entries()) {
-        const exId = nameToId.get(ex.exercise_name)
-        if (!exId) continue
+        const nameLower = ex.exercise_name.toLowerCase()
+        const exId = templateNameToId.get(nameLower) ?? dbNameToId.get(nameLower)
+        if (!exId) {
+          console.warn(`[weekly-plan] exercise not found: "${ex.exercise_name}"`)
+          continue
+        }
         await prisma.plannedExercise.create({
           data: {
             planned_session_id: session.id,

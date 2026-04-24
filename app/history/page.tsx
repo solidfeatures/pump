@@ -28,7 +28,13 @@ import { calculateWeeklyVolumeByMuscle, MRV_THRESHOLD, MEV_THRESHOLD } from '@/l
 export default function HistoryPage() {
   const { sessions, getPRRecords, exercises } = useWorkout()
   const [activeTab, setActiveTab] = useState('achievements')
-  const [weekOffset, setWeekOffset] = useState(0)
+  const currentMonday = useMemo(
+    () => startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0],
+    []
+  )
+  const [selectedMonday, setSelectedMonday] = useState<string>(
+    () => startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString().split('T')[0]
+  )
   const [latestMetrics, setLatestMetrics] = useState<BodyMetric | null>(null)
   const [metrics30d, setMetrics30d] = useState<BodyMetric[]>([])
 
@@ -50,6 +56,16 @@ export default function HistoryPage() {
       .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()),
     [sessions]
   )
+
+  const weeksWithData = useMemo(() => {
+    const weekSet = new Set<string>()
+    completedSessions.forEach(s => {
+      const monday = startOfWeek(parseISO(s.date), { weekStartsOn: 1 })
+      weekSet.add(monday.toISOString().split('T')[0])
+    })
+    weekSet.add(currentMonday)
+    return Array.from(weekSet).sort()
+  }, [completedSessions, currentMonday])
 
   const prRecords = useMemo(() => getPRRecords(), [getPRRecords])
 
@@ -110,12 +126,18 @@ export default function HistoryPage() {
 
   // ── Weekly analysis ──
   const selectedWeek = useMemo(() => {
-    const base = addWeeks(new Date(), weekOffset)
-    return {
-      start: startOfWeek(base, { weekStartsOn: 1 }),
-      end: endOfWeek(base, { weekStartsOn: 1 }),
-    }
-  }, [weekOffset])
+    const start = parseISO(selectedMonday)
+    return { start, end: endOfWeek(start, { weekStartsOn: 1 }) }
+  }, [selectedMonday])
+
+  const weekIdx = weeksWithData.indexOf(selectedMonday)
+  const safeIdx = weekIdx === -1 ? weeksWithData.length - 1 : weekIdx
+  const canGoPrev = safeIdx > 0
+  const canGoNext = safeIdx < weeksWithData.length - 1
+  const weeksAgo = Math.round(
+    (parseISO(currentMonday).getTime() - parseISO(selectedMonday).getTime()) /
+      (7 * 24 * 60 * 60 * 1000)
+  )
 
   const prevWeek = useMemo(() => ({
     start: subWeeks(selectedWeek.start, 1),
@@ -383,7 +405,13 @@ export default function HistoryPage() {
         <TabsContent value="analysis" className="space-y-6">
           {/* Week picker */}
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)} className="rounded-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedMonday(weeksWithData[safeIdx - 1])}
+              disabled={!canGoPrev}
+              className="rounded-full"
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <div className="text-center">
@@ -392,14 +420,18 @@ export default function HistoryPage() {
                 {' – '}
                 {format(selectedWeek.end, "d 'de' MMM yyyy", { locale: ptBR })}
               </p>
-              {weekOffset === 0 && <p className="text-xs text-primary">Esta semana</p>}
-              {weekOffset < 0 && <p className="text-xs text-muted-foreground">{Math.abs(weekOffset)} semana{Math.abs(weekOffset) > 1 ? 's' : ''} atrás</p>}
+              {weeksAgo === 0 && <p className="text-xs text-primary">Esta semana</p>}
+              {weeksAgo > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {weeksAgo} semana{weeksAgo > 1 ? 's' : ''} atrás
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setWeekOffset(o => Math.min(o + 1, 0))}
-              disabled={weekOffset >= 0}
+              onClick={() => setSelectedMonday(weeksWithData[safeIdx + 1])}
+              disabled={!canGoNext}
               className="rounded-full"
             >
               <ChevronRight className="w-4 h-4" />

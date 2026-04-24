@@ -4,12 +4,14 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Loader2, Sparkles, ChevronDown, CheckCircle2, Clock,
-  Dumbbell, RefreshCw, X, RotateCcw,
+  Dumbbell, RotateCcw, ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/glass-card'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import Link from 'next/link'
+import { useWorkout } from '@/lib/workout-context'
 
 // ─── localStorage generation lock ────────────────────────────────────────────
 const LOCK_KEY = 'pump-weekly-plan-lock'
@@ -105,11 +107,11 @@ interface WeekPlanStatusProps {
 }
 
 export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStatusProps) {
+  const { getSessionByDate } = useWorkout()
   const [status, setStatus]       = useState<WeekStatus | null>(null)
   const [loading, setLoading]     = useState(true)
   const [planning, setPlanning]   = useState(false)
   const [expanded, setExpanded]   = useState(true)
-  const [activeDay, setActiveDay] = useState<number | null>(null) // day_of_week 1-7
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = useCallback(() => {
@@ -239,7 +241,6 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
     : []
 
   const sessionByDow = new Map(sessions.map(s => [s.day_of_week ?? 0, s]))
-  const activeSession = activeDay !== null ? sessionByDow.get(activeDay) ?? null : null
 
   return (
     <GlassCard className="overflow-hidden">
@@ -318,26 +319,13 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
                   {weekDays.map(({ dow, date, ds }) => {
                     const session = sessionByDow.get(dow)
                     const isToday = ds === today
-                    const isActive = activeDay === dow
                     const meta = session ? statusMeta(session.status) : null
+                    // Find the corresponding context session (generated from template)
+                    const ctxSession = session ? getSessionByDate(ds) : null
+                    const workoutHref = ctxSession ? `/workout/${ctxSession.id}` : null
 
-                    return (
-                      <motion.div
-                        key={dow}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: dow * 0.04 }}
-                        onClick={() => {
-                          if (!session) return
-                          setActiveDay(prev => prev === dow ? null : dow)
-                        }}
-                        className={cn(
-                          'rounded-xl p-2.5 flex flex-col gap-2 min-h-[90px] transition-all duration-150',
-                          isToday ? 'ring-2 ring-primary/60 bg-white/8' : 'bg-white/5',
-                          session && !isActive && 'hover:bg-white/10 cursor-pointer',
-                          isActive && 'ring-2 ring-white/20 bg-white/10',
-                        )}
-                      >
+                    const cardContent = (
+                      <div className="flex flex-col gap-2 h-full">
                         {/* Day header */}
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] text-muted-foreground font-medium">{DAY_ABBR[dow]}</span>
@@ -346,103 +334,68 @@ export function WeekPlanStatus({ trainingDayMask, autoWeeklyPlan }: WeekPlanStat
                           </span>
                         </div>
 
-                        {/* Session card or rest */}
                         {session ? (
-                          <div className={cn('flex-1 rounded-lg border px-2 py-1.5 text-xs flex flex-col gap-1', meta!.bg)}>
+                          <div className={cn('flex-1 rounded-lg border px-2 py-1.5 text-xs flex flex-col gap-1.5', meta!.bg)}>
                             <div className={cn('flex items-center gap-1', meta!.color)}>
                               {meta!.icon}
-                              <span className="font-semibold leading-tight line-clamp-2">{session.name}</span>
+                              <span className="font-semibold leading-tight line-clamp-2 flex-1">{session.name}</span>
                             </div>
                             <span className="text-muted-foreground text-[10px]">
-                              {session.exercises.length} exercícios
+                              {session.exercises.length} exercício{session.exercises.length !== 1 ? 's' : ''}
                             </span>
+                            {session.exercises.length > 0 && (
+                              <div className="space-y-0.5 mt-0.5">
+                                {session.exercises.slice(0, 3).map(ex => (
+                                  <p key={ex.id} className="text-[9px] text-muted-foreground/70 truncate leading-tight">
+                                    {ex.exercise_name}
+                                    {ex.suggested_load_kg != null && (
+                                      <span className="text-white/50 ml-1">{ex.suggested_load_kg}kg</span>
+                                    )}
+                                  </p>
+                                ))}
+                                {session.exercises.length > 3 && (
+                                  <p className="text-[9px] text-muted-foreground/50">+{session.exercises.length - 3} mais</p>
+                                )}
+                              </div>
+                            )}
+                            {workoutHref && session.status !== 'Concluída' && (
+                              <div className="flex items-center gap-0.5 text-[9px] text-primary/70 mt-auto pt-1">
+                                <span>Ir para treino</span>
+                                <ChevronRight className="w-2.5 h-2.5" />
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div className="flex-1 rounded-lg bg-white/5 border border-white/8 px-2 py-1.5 text-[10px] text-muted-foreground/60 flex items-center justify-center">
+                          <div className="flex-1 rounded-lg bg-white/5 border border-white/8 px-2 py-1.5 text-[10px] text-muted-foreground/50 flex items-center justify-center">
                             Descanso
                           </div>
+                        )}
+                      </div>
+                    )
+
+                    return (
+                      <motion.div
+                        key={dow}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: dow * 0.04 }}
+                        className={cn(
+                          'rounded-xl p-2.5 min-h-[110px] transition-all duration-150',
+                          isToday ? 'ring-2 ring-primary/60 bg-white/8' : 'bg-white/5',
+                          session && workoutHref && session.status !== 'Concluída' && 'hover:bg-white/10',
+                        )}
+                      >
+                        {session && workoutHref && session.status !== 'Concluída' ? (
+                          <Link href={workoutHref} className="block h-full">
+                            {cardContent}
+                          </Link>
+                        ) : (
+                          cardContent
                         )}
                       </motion.div>
                     )
                   })}
                 </div>
-
-                {/* Inline session detail */}
-                <AnimatePresence>
-                  {activeSession && (
-                    <motion.div
-                      key={activeSession.id}
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.15 }}
-                      className="rounded-xl bg-white/5 border border-white/10 overflow-hidden"
-                    >
-                      {/* Detail header */}
-                      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-white/8">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs text-muted-foreground">{DAY_ABBR[activeDay!]}</span>
-                            <span className={cn('text-xs font-medium', statusMeta(activeSession.status).color)}>
-                              {activeSession.status}
-                            </span>
-                          </div>
-                          <p className="font-semibold text-sm mt-0.5">{activeSession.name}</p>
-                          {activeSession.ai_notes && (
-                            <p className="text-xs text-muted-foreground italic mt-0.5">{activeSession.ai_notes}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => setActiveDay(null)}
-                          className="text-muted-foreground hover:text-white transition-colors shrink-0 mt-0.5"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Exercise table */}
-                      <div className="divide-y divide-white/5">
-                        {activeSession.exercises.map((ex, i) => (
-                          <div
-                            key={ex.id}
-                            className={cn(
-                              'flex items-center gap-3 px-4 py-2.5 text-sm',
-                              ex.contingency_added && 'bg-amber-500/5',
-                            )}
-                          >
-                            <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-muted-foreground shrink-0">
-                              {i + 1}
-                            </span>
-                            <span className={cn('flex-1 font-medium', ex.contingency_added && 'text-amber-300')}>
-                              {ex.exercise_name}
-                            </span>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                              <span className="tabular-nums">
-                                {ex.sets_count}×
-                                {ex.reps_min != null && ex.reps_max != null
-                                  ? ex.reps_min === ex.reps_max
-                                    ? ex.reps_min
-                                    : `${ex.reps_min}–${ex.reps_max}`
-                                  : '—'}
-                              </span>
-                              {ex.suggested_load_kg != null && (
-                                <span className="tabular-nums text-white/70 font-medium">
-                                  {ex.suggested_load_kg}kg
-                                </span>
-                              )}
-                              {ex.target_rir != null && (
-                                <span className="hidden sm:inline">RIR {ex.target_rir}</span>
-                              )}
-                              {ex.target_rpe != null && ex.target_rir == null && (
-                                <span className="hidden sm:inline">RPE {ex.target_rpe}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             ) : (
               /* No plan empty state */

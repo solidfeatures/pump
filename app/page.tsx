@@ -250,8 +250,8 @@ export default function Dashboard() {
 
         {/* ────────── TAB 3: PROGRESSÃO ────────── */}
         <TabsContent value="progress" className="space-y-6">
-          <ExerciseProgressionTable />
           <ProgressionCharts />
+          <ExerciseProgressionTable />
         </TabsContent>
 
         {/* ────────── TAB 4: CALENDÁRIO ────────── */}
